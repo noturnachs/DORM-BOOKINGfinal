@@ -18,7 +18,6 @@ const Dashboard = () => {
       const response = await api.get("/bookings/user");
       setBookings(response.data);
       setError(""); // Clear any previous errors
-      console.log(response.data);
     } catch (error) {
       console.error("Booking fetch error:", error);
       setError(
