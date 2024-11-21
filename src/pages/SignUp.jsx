@@ -103,9 +103,7 @@ const SignUp = () => {
             <h2 className="text-2xl font-bold text-gray-100 mb-2">
               Account Successfully Created!
             </h2>
-            <p className="text-gray-400">
-              Redirecting you to login page in 5 seconds...
-            </p>
+            <p className="text-gray-400">Redirecting you to login.</p>
             <div className="mt-4">
               <div className="w-full bg-[#2F3336] rounded-full h-1">
                 <div
