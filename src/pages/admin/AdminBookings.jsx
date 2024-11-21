@@ -8,6 +8,9 @@ const AdminBookings = () => {
   const [filter, setFilter] = useState("all"); // all, active, pending, cancelled
   const [successMessage, setSuccessMessage] = useState("");
 
+  const [loadingBookingId, setLoadingBookingId] = useState(null);
+  const [loadingPaymentId, setLoadingPaymentId] = useState(null);
+
   useEffect(() => {
     fetchBookings();
   }, [filter]);
@@ -25,6 +28,8 @@ const AdminBookings = () => {
 
   const handlePaymentStatusChange = async (bookingId, newPaymentStatus) => {
     try {
+      setLoadingPaymentId(bookingId);
+      setError("");
       await api.patch(`/admin/bookings/${bookingId}/payment`, {
         payment_status: newPaymentStatus,
       });
@@ -32,22 +37,33 @@ const AdminBookings = () => {
         setSuccessMessage(
           "Payment status updated and confirmation email sent!"
         );
-        setTimeout(() => setSuccessMessage(""), 5000); // Clear message after 5 seconds
+        setTimeout(() => setSuccessMessage(""), 5000);
       }
       fetchBookings();
     } catch (error) {
       setError("Failed to update payment status");
+    } finally {
+      setLoadingPaymentId(null);
     }
   };
 
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
+      setLoadingBookingId(bookingId);
+      setError("");
       await api.patch(`/admin/bookings/${bookingId}`, { status: newStatus });
       fetchBookings();
     } catch (error) {
       setError("Failed to update booking status");
+    } finally {
+      setLoadingBookingId(null);
     }
   };
+
+  // Loading spinner component
+  const LoadingSpinner = () => (
+    <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+  );
 
   if (loading) return <div className="text-white">Loading...</div>;
 
@@ -122,29 +138,51 @@ const AdminBookings = () => {
                   </td>
 
                   <td className="p-4 space-x-2">
-                    <select
-                      value={booking.status}
-                      onChange={(e) =>
-                        handleStatusChange(booking.id, e.target.value)
-                      }
-                      className="bg-[#2C3E50] border border-[#2F3336] text-white rounded px-2 py-1 mr-2"
-                    >
-                      <option value="active">Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                    <select
-                      value={booking.payment_status}
-                      onChange={(e) =>
-                        handlePaymentStatusChange(booking.id, e.target.value)
-                      }
-                      className="bg-[#2C3E50] border border-[#2F3336] text-white rounded px-2 py-1"
-                    >
-                      <option value="pending">Payment Pending</option>
-                      <option value="paid">Paid</option>
-                      <option value="refunded">Refunded</option>
-                      <option value="failed">Failed</option>
-                    </select>
+                    <div className="flex space-x-2">
+                      <div className="relative inline-block">
+                        {loadingBookingId === booking.id ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-[#2C3E50] rounded">
+                            <LoadingSpinner />
+                          </div>
+                        ) : null}
+                        <select
+                          value={booking.status}
+                          onChange={(e) =>
+                            handleStatusChange(booking.id, e.target.value)
+                          }
+                          disabled={loadingBookingId === booking.id}
+                          className="bg-[#2C3E50] border border-[#2F3336] text-white rounded px-2 py-1 min-w-[120px]"
+                        >
+                          <option value="active">Active</option>
+                          <option value="pending">Pending</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+
+                      <div className="relative inline-block">
+                        {loadingPaymentId === booking.id ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-[#2C3E50] rounded">
+                            <LoadingSpinner />
+                          </div>
+                        ) : null}
+                        <select
+                          value={booking.payment_status}
+                          onChange={(e) =>
+                            handlePaymentStatusChange(
+                              booking.id,
+                              e.target.value
+                            )
+                          }
+                          disabled={loadingPaymentId === booking.id}
+                          className="bg-[#2C3E50] border border-[#2F3336] text-white rounded px-2 py-1 min-w-[140px]"
+                        >
+                          <option value="pending">Payment Pending</option>
+                          <option value="paid">Paid</option>
+                          <option value="refunded">Refunded</option>
+                          <option value="failed">Failed</option>
+                        </select>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}
