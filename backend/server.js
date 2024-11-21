@@ -5,6 +5,28 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const { Pool } = require("pg");
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Configure storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "dorms",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 1000, height: 1000, crop: "limit" }],
+  },
+});
+
+const upload = multer({ storage: storage });
 
 const app = express();
 
@@ -856,24 +878,81 @@ const isAdmin = async (req, res, next) => {
 };
 
 // Admin routes
-app.post("/api/admin/dorms", authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const { name, description, price_per_night, capacity, available } =
-      req.body;
+app.post(
+  "/api/admin/dorms",
+  authenticateToken,
+  isAdmin,
+  upload.array("images", 5),
+  async (req, res) => {
+    try {
+      const { name, description, price_per_night, capacity, available } =
+        req.body;
+      const uploadedImages = req.files.map((file) => file.path);
 
-    const result = await pool.query(
-      `INSERT INTO dorms (name, description, price_per_night, capacity, available)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-      [name, description, price_per_night, capacity, available]
-    );
+      const result = await pool.query(
+        `INSERT INTO dorms (name, description, price_per_night, capacity, available, images)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+        [
+          name,
+          description,
+          price_per_night,
+          capacity,
+          available,
+          uploadedImages,
+        ]
+      );
 
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error("Error adding dorm:", error);
-    res.status(500).json({ error: error.message });
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      // If error occurs, delete uploaded images
+      if (req.files) {
+        for (const file of req.files) {
+          const publicId = file.filename;
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
+      console.error("Error adding dorm:", error);
+      res.status(500).json({ error: error.message });
+    }
   }
-});
+);
+
+app.delete(
+  "/api/admin/dorms/:id/images",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { imageUrl } = req.body;
+
+      // Extract public_id from Cloudinary URL
+      const publicId = imageUrl.split("/").slice(-1)[0].split(".")[0];
+
+      // Delete from Cloudinary
+      await cloudinary.uploader.destroy(`dorms/${publicId}`);
+
+      // Update database
+      const existingDorm = await pool.query(
+        "SELECT images FROM dorms WHERE id = $1",
+        [id]
+      );
+      const existingImages = existingDorm.rows[0]?.images || [];
+      const updatedImages = existingImages.filter((img) => img !== imageUrl);
+
+      await pool.query("UPDATE dorms SET images = $1 WHERE id = $2", [
+        updatedImages,
+        id,
+      ]);
+
+      res.json({ message: "Image deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
 
 app.get("/api/admin/dorms", authenticateToken, isAdmin, async (req, res) => {
   try {
@@ -1125,26 +1204,60 @@ app.put(
   "/api/admin/dorms/:id",
   authenticateToken,
   isAdmin,
+  upload.array("images", 5), // Add multer middleware
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, price_per_night, capacity, available } =
-        req.body;
+      const {
+        name,
+        description,
+        price_per_night,
+        capacity,
+        available,
+        existingImages,
+      } = req.body;
+
+      // Convert existingImages from string back to array if it's passed as string
+      const existingImagesArray =
+        typeof existingImages === "string"
+          ? JSON.parse(existingImages)
+          : existingImages || [];
+
+      // Get URLs of newly uploaded images
+      const newImageUrls = req.files ? req.files.map((file) => file.path) : [];
+
+      // Combine existing and new images
+      const allImages = [...existingImagesArray, ...newImageUrls];
 
       const result = await pool.query(
         `UPDATE dorms 
-         SET name = $1, description = $2, price_per_night = $3, capacity = $4, available = $5
-         WHERE id = $6
+         SET name = $1, description = $2, price_per_night = $3, capacity = $4, 
+             available = $5, images = $6
+         WHERE id = $7
          RETURNING *`,
-        [name, description, price_per_night, capacity, available, id]
+        [name, description, price_per_night, capacity, available, allImages, id]
       );
 
       if (result.rows.length === 0) {
+        // Delete newly uploaded images if dorm not found
+        if (req.files) {
+          for (const file of req.files) {
+            const publicId = file.filename;
+            await cloudinary.uploader.destroy(publicId);
+          }
+        }
         return res.status(404).json({ error: "Dorm not found" });
       }
 
       res.json(result.rows[0]);
     } catch (error) {
+      // Delete uploaded images if there's an error
+      if (req.files) {
+        for (const file of req.files) {
+          const publicId = file.filename;
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
       console.error("Error updating dorm:", error);
       res.status(500).json({ error: error.message });
     }

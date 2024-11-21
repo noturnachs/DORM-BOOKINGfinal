@@ -157,35 +157,36 @@ const DormDetails = () => {
   };
 
   // Dummy images (replace with actual dorm images)
-  const images = [
-    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5",
-    "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af",
-    "https://images.unsplash.com/photo-1515552726023-7125c8d07fb3",
-  ];
+  // const images = [
+  //   "https://images.unsplash.com/photo-1555854877-bab0e564b8d5",
+  //   "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af",
+  //   "https://images.unsplash.com/photo-1515552726023-7125c8d07fb3",
+  // ];
 
   useEffect(() => {
     const fetchDormDetails = async () => {
       try {
-        const response = await api.get(`/dorms/${id}`);
-        setDorm(response.data);
+        setLoading(true);
+        const [dormResponse, reviewsResponse] = await Promise.all([
+          api.get(`/dorms/${id}`),
+          api.get(`/dorms/${id}/reviews`),
+        ]);
+
+        setDorm(dormResponse.data);
+        setReviews(reviewsResponse.data);
+
+        // If there are images, set the first one as active
+        if (dormResponse.data.images && dormResponse.data.images.length > 0) {
+          setActiveImage(0);
+        }
       } catch (error) {
-        setError("Failed to fetch dorm details");
+        setError(error.response?.data?.error || "Failed to fetch dorm details");
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchReviews = async () => {
-      try {
-        const response = await api.get(`/dorms/${id}/reviews`);
-        setReviews(response.data);
-      } catch (error) {
-        console.error("Failed to fetch reviews:", error);
-      }
-    };
-
     fetchDormDetails();
-    fetchReviews();
   }, [id]);
 
   const fetchReviews = async () => {
@@ -229,23 +230,81 @@ const DormDetails = () => {
         <div className="bg-[#22303C] rounded-xl shadow-sm overflow-hidden border border-[#2F3336]">
           {/* Image Gallery */}
           <div className="relative h-96">
-            <img
-              src={images[activeImage]}
-              alt={`Dorm view ${activeImage + 1}`}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-              {images.map((_, index) => (
+            {dorm?.images && dorm.images.length > 0 ? (
+              <img
+                src={dorm.images[activeImage]}
+                alt={`${dorm?.name || "Dorm"} view ${activeImage + 1}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#2C3E50] flex items-center justify-center">
+                <span className="text-gray-500">No images available</span>
+              </div>
+            )}
+
+            {/* Image Navigation Dots */}
+            {dorm?.images && dorm.images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {dorm.images.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveImage(index)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      activeImage === index ? "bg-white" : "bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Optional: Add Previous/Next buttons */}
+            {dorm?.images && dorm.images.length > 1 && (
+              <>
+                <button
+                  onClick={() =>
+                    setActiveImage((prev) =>
+                      prev === 0 ? dorm.images.length - 1 : prev - 1
+                    )
+                  }
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-colors"
+                >
+                  ←
+                </button>
+                <button
+                  onClick={() =>
+                    setActiveImage((prev) =>
+                      prev === dorm.images.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-colors"
+                >
+                  →
+                </button>
+              </>
+            )}
+          </div>
+          {/* Optional: Add Thumbnail Strip */}
+          {dorm?.images && dorm.images.length > 1 && (
+            <div className="flex gap-2 p-4 overflow-x-auto">
+              {dorm.images.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setActiveImage(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    activeImage === index ? "bg-white" : "bg-white/50"
+                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden ${
+                    activeImage === index
+                      ? "ring-2 ring-blue-500"
+                      : "ring-1 ring-[#2F3336]"
                   }`}
-                />
+                >
+                  <img
+                    src={image}
+                    alt={`${dorm.name} thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
               ))}
             </div>
-          </div>
+          )}
 
           <div className="p-6 sm:p-8">
             {/* Dorm Header */}
