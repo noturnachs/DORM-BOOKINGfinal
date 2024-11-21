@@ -223,7 +223,7 @@ const DormDetails = () => {
           onClick={() => navigate(-1)}
           className="mb-6 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
         >
-          <span>← Back to dorms</span>
+          <span>← Back to Dashboard</span>
         </button>
 
         <div className="bg-[#22303C] rounded-xl shadow-sm overflow-hidden border border-[#2F3336]">
