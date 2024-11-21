@@ -1,24 +1,64 @@
-import logo from './logo.svg';
-import './App.css';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import LandingPage from "./pages/LandingPage";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import Dashboard from "./pages/Dashboard";
+import DormDetails from "./components/DormDetails";
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const auth = useAuth();
+
+  if (!auth) {
+    return <Navigate to="/login" />;
+  }
+
+  const { user, loading } = auth;
+
+  if (loading) return null;
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <AuthProvider>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dorms/:id"
+              element={
+                <ProtectedRoute>
+                  <DormDetails />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
+      </AuthProvider>
+    </Router>
   );
 }
 

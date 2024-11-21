@@ -1,13 +1,20 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add these base dark mode colors */
+:root {
+  --dark-bg: #192734;
+  --dark-secondary: #22303c;
+  --dark-accent: #2c3e50;
+  --dark-text: #e1e8ed;
+  --dark-text-secondary: #8899a6;
+  --dark-border: #2f3336;
+  --dark-hover: #22303c;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Apply dark mode by default */
+body {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
 }
