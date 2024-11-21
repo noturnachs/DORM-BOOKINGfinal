@@ -1,10 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const mysql = require("mysql2");
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const { Pool } = require("pg");
 
 const app = express();
 
@@ -23,13 +23,22 @@ const transporter = nodemailer.createTransport({
 app.use(cors());
 app.use(express.json());
 
-// MySQL Connection
-const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "bookit_db",
+const pool = new Pool({
+  connectionString:
+    "postgresql://grimhub:oyVSY3uTAHJfoTsbCUtVtXuv4AZtHH4g@dpg-cq8h5a4s1f4s73clm690-a.singapore-postgres.render.com/lfgdb",
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
+
+pool
+  .connect()
+  .then(() => {
+    console.log("Successfully connected to the PostgreSQL database.");
+  })
+  .catch((err) => {
+    console.error("Database connection error:", err);
+  });
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -55,11 +64,12 @@ app.post("/api/signup", async (req, res) => {
     const { email, password, firstName, lastName } = req.body;
 
     // Check if user exists
-    const [existingUser] = await db
-      .promise()
-      .query("SELECT * FROM users WHERE email = ?", [email]);
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
 
-    if (existingUser.length > 0) {
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({ error: "Email already exists" });
     }
 
@@ -67,12 +77,10 @@ app.post("/api/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const [result] = await db
-      .promise()
-      .query(
-        "INSERT INTO users (email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?)",
-        [email, hashedPassword, firstName, lastName, "student"]
-      );
+    await pool.query(
+      "INSERT INTO users (email, password, first_name, last_name, role) VALUES ($1, $2, $3, $4, $5)",
+      [email, hashedPassword, firstName, lastName, "student"]
+    );
 
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
@@ -86,15 +94,15 @@ app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
 
     // Get user
-    const [users] = await db
-      .promise()
-      .query("SELECT * FROM users WHERE email = ?", [email]);
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
 
-    if (users.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const user = users[0];
+    const user = result.rows[0];
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password);
@@ -142,47 +150,35 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
     const { start_date, end_date, semester, academicYear } = req.body;
     const dorm_id = req.params.id;
     const user_id = req.user.userId;
-
-    // Generate confirmation number (assuming you have this function)
     const confirmation_number = generateConfirmationNumber();
-
-    // Set initial statuses - these should ONLY be set on the server
-    const status = "active"; // Initial booking status
-    const payment_status = "unpaid"; // Initial payment status
+    const status = "active";
+    const payment_status = "unpaid";
     const payment_deadline = new Date(
       Date.now() + 48 * 60 * 60 * 1000
     ).toISOString();
 
-    // First, check if the dorm is available
-    const [existingBookings] = await db.promise().query(
+    // Check availability
+    const existingBookings = await pool.query(
       `SELECT id FROM bookings 
-         WHERE dorm_id = ? 
-         AND ((start_date <= ? AND end_date >= ?) 
-         OR (start_date <= ? AND end_date >= ?))
+         WHERE dorm_id = $1 
+         AND ((start_date <= $2 AND end_date >= $3) 
+         OR (start_date <= $4 AND end_date >= $5))
          AND status = 'active'`,
       [dorm_id, end_date, start_date, end_date, start_date]
     );
 
-    if (existingBookings.length > 0) {
+    if (existingBookings.rows.length > 0) {
       return res
         .status(400)
         .json({ error: "Dorm is not available for these dates" });
     }
 
-    // If available, create the booking
-    const [result] = await db.promise().query(
+    // Create booking
+    const result = await pool.query(
       `INSERT INTO bookings (
-          user_id, 
-          dorm_id, 
-          start_date, 
-          end_date, 
-          semester,
-          academic_year,
-          status,
-          payment_status,
-          payment_deadline,
-          confirmation_number
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          user_id, dorm_id, start_date, end_date, semester,
+          academic_year, status, payment_status, payment_deadline, confirmation_number
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
       [
         user_id,
         dorm_id,
@@ -197,18 +193,19 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
       ]
     );
 
-    // Verify the booking was created
-    const [newBooking] = await db
-      .promise()
-      .query("SELECT * FROM bookings WHERE id = ?", [result.insertId]);
+    // Verify booking
+    const newBooking = await pool.query(
+      "SELECT * FROM bookings WHERE id = $1",
+      [result.rows[0].id]
+    );
 
-    if (!newBooking.length) {
+    if (!newBooking.rows.length) {
       throw new Error("Booking creation failed");
     }
 
     res.status(201).json({
       message: "Booking created successfully",
-      bookingId: result.insertId,
+      bookingId: result.rows[0].id,
       confirmation_number,
       status,
       payment_status,
@@ -229,29 +226,26 @@ app.patch("/api/bookings/:id/payment", authenticateToken, async (req, res) => {
     const { payment_status } = req.body;
     const booking_id = req.params.id;
 
-    await db
-      .promise()
-      .query(
-        "UPDATE bookings SET payment_status = ?, status = ? WHERE id = ?",
-        [
-          payment_status,
-          payment_status === "paid" ? "active" : "pending",
-          booking_id,
-        ]
-      );
+    await pool.query(
+      "UPDATE bookings SET payment_status = $1, status = $2 WHERE id = $3",
+      [
+        payment_status,
+        payment_status === "paid" ? "active" : "pending",
+        booking_id,
+      ]
+    );
 
-    // If payment is confirmed, send another email
     if (payment_status === "paid") {
-      const [bookings] = await db.promise().query(
+      const bookingResult = await pool.query(
         `SELECT u.email, u.first_name, d.name, b.semester, b.academic_year 
            FROM bookings b 
            JOIN users u ON b.user_id = u.id 
            JOIN dorms d ON b.dorm_id = d.id 
-           WHERE b.id = ?`,
+           WHERE b.id = $1`,
         [booking_id]
       );
 
-      const booking = bookings[0];
+      const booking = bookingResult.rows[0];
 
       const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -282,30 +276,29 @@ app.patch("/api/bookings/:id/payment", authenticateToken, async (req, res) => {
 
 app.get("/api/dorms/:id/reviews", async (req, res) => {
   try {
-    const [reviews] = await db.promise().query(
+    const result = await pool.query(
       `SELECT r.*, u.first_name, u.last_name 
          FROM reviews r
          JOIN users u ON r.user_id = u.id
-         WHERE r.dorm_id = ?
+         WHERE r.dorm_id = $1
          ORDER BY r.created_at DESC`,
       [req.params.id]
     );
-    res.json(reviews);
+    res.json(result.rows);
   } catch (error) {
     console.error("Error fetching reviews:", error);
     res.status(500).json({ error: "Failed to fetch reviews" });
   }
 });
 
+// Add review
 app.post("/api/dorms/:id/reviews", authenticateToken, async (req, res) => {
   try {
     const { rating, comment } = req.body;
-    await db
-      .promise()
-      .query(
-        "INSERT INTO reviews (dorm_id, user_id, rating, comment) VALUES (?, ?, ?, ?)",
-        [req.params.id, req.user.userId, rating, comment]
-      );
+    await pool.query(
+      "INSERT INTO reviews (dorm_id, user_id, rating, comment) VALUES ($1, $2, $3, $4)",
+      [req.params.id, req.user.userId, rating, comment]
+    );
     res.status(201).json({ message: "Review added successfully" });
   } catch (error) {
     console.error("Error adding review:", error);
@@ -324,42 +317,45 @@ app.get("/api/dorms", async (req, res) => {
     const capacity = req.query.capacity;
     const available = req.query.available;
 
-    let query = "SELECT * FROM dorms WHERE 1=1";
+    let query = "SELECT * FROM dorms WHERE TRUE"; // Use TRUE for a base condition
     const queryParams = [];
+    let paramCount = 1;
 
     // Add filters if they exist
     if (minPrice) {
-      query += " AND price_per_night >= ?";
+      query += ` AND price_per_night >= $${paramCount}`;
       queryParams.push(minPrice);
+      paramCount++;
     }
     if (maxPrice) {
-      query += " AND price_per_night <= ?";
+      query += ` AND price_per_night <= $${paramCount}`;
       queryParams.push(maxPrice);
+      paramCount++;
     }
     if (capacity) {
-      query += " AND capacity >= ?";
+      query += ` AND capacity >= $${paramCount}`;
       queryParams.push(capacity);
+      paramCount++;
     }
     if (available !== undefined) {
-      query += " AND available = ?";
+      query += ` AND available = $${paramCount}`;
       queryParams.push(available);
+      paramCount++;
     }
 
     // Add pagination
-    query += " LIMIT ? OFFSET ?";
+    query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     queryParams.push(limit, offset);
 
     // Get dorms
-    const [dorms] = await db.promise().query(query, queryParams);
+    const dormsResult = await pool.query(query, queryParams);
 
     // Get total count for pagination
-    const [countResult] = await db
-      .promise()
-      .query("SELECT COUNT(*) as total FROM dorms");
-    const total = countResult[0].total;
+    const countResult = await pool.query("SELECT COUNT(*) as total FROM dorms");
+    const total = parseInt(countResult.rows[0].total);
 
     res.json({
-      dorms,
+      dorms: dormsResult.rows,
       pagination: {
         total,
         pages: Math.ceil(total / limit),
@@ -377,16 +373,14 @@ app.post("/api/dorms", authenticateToken, async (req, res) => {
   try {
     const { name, description, capacity, price_per_night } = req.body;
 
-    const [result] = await db
-      .promise()
-      .query(
-        "INSERT INTO dorms (name, description, capacity, price_per_night) VALUES (?, ?, ?, ?)",
-        [name, description, capacity, price_per_night]
-      );
+    const result = await pool.query(
+      "INSERT INTO dorms (name, description, capacity, price_per_night) VALUES ($1, $2, $3, $4) RETURNING id",
+      [name, description, capacity, price_per_night]
+    );
 
     res.status(201).json({
       message: "Dorm created successfully",
-      dormId: result.insertId,
+      dormId: result.rows[0].id,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -396,15 +390,15 @@ app.post("/api/dorms", authenticateToken, async (req, res) => {
 // Get single dorm by ID
 app.get("/api/dorms/:id", async (req, res) => {
   try {
-    const [dorms] = await db
-      .promise()
-      .query("SELECT * FROM dorms WHERE id = ?", [req.params.id]);
+    const result = await pool.query("SELECT * FROM dorms WHERE id = $1", [
+      req.params.id,
+    ]);
 
-    if (dorms.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: "Dorm not found" });
     }
 
-    res.json(dorms[0]);
+    res.json(result.rows[0]);
   } catch (error) {
     console.error("Error fetching dorm:", error);
     res.status(500).json({ error: "Failed to fetch dorm" });
@@ -418,12 +412,10 @@ app.patch(
     try {
       const { available } = req.body;
 
-      await db
-        .promise()
-        .query("UPDATE dorms SET available = ? WHERE id = ?", [
-          available,
-          req.params.id,
-        ]);
+      await pool.query("UPDATE dorms SET available = $1 WHERE id = $2", [
+        available,
+        req.params.id,
+      ]);
 
       res.json({ message: "Dorm availability updated successfully" });
     } catch (error) {
@@ -440,43 +432,48 @@ app.post("/api/bookings", authenticateToken, async (req, res) => {
     const user_id = req.user.userId;
 
     // Check if dorm exists
-    const [dorms] = await db
-      .promise()
-      .query("SELECT * FROM dorms WHERE id = ?", [dorm_id]);
+    const dormResult = await pool.query("SELECT * FROM dorms WHERE id = $1", [
+      dorm_id,
+    ]);
 
-    if (dorms.length === 0) {
+    if (dormResult.rows.length === 0) {
       return res.status(404).json({ error: "Dorm not found" });
     }
 
     // Check availability
-    const [conflicts] = await db.promise().query(
+    const conflictsResult = await pool.query(
       `SELECT * FROM bookings 
-       WHERE dorm_id = ? 
-       AND status = 'active'
-       AND start_date <= ? 
-       AND end_date >= ?`,
+         WHERE dorm_id = $1 
+         AND status = 'active'
+         AND start_date <= $2 
+         AND end_date >= $3`,
       [dorm_id, end_date, start_date]
     );
 
-    if (conflicts.length > 0) {
+    if (conflictsResult.rows.length > 0) {
       return res
         .status(400)
         .json({ error: "Dorm is not available for these dates" });
     }
 
     // Create booking
-    const [result] = await db
-      .promise()
-      .query(
-        "INSERT INTO bookings (user_id, dorm_id, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)",
-        [user_id, dorm_id, start_date, end_date, "active"]
-      );
+    const result = await pool.query(
+      `INSERT INTO bookings (
+          user_id, 
+          dorm_id, 
+          start_date, 
+          end_date, 
+          status
+        ) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [user_id, dorm_id, start_date, end_date, "active"]
+    );
 
     res.status(201).json({
       message: "Booking created successfully",
-      bookingId: result.insertId,
+      bookingId: result.rows[0].id,
     });
   } catch (error) {
+    console.error("Booking error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -486,7 +483,7 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const [bookings] = await db.promise().query(
+    const result = await pool.query(
       `SELECT 
           b.id,
           b.user_id,
@@ -504,13 +501,13 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
           d.price_per_night
          FROM bookings b
          JOIN dorms d ON b.dorm_id = d.id
-         WHERE b.user_id = ?
+         WHERE b.user_id = $1
          ORDER BY b.created_at DESC`,
       [userId]
     );
 
-    console.log("Fetched bookings:", bookings); // Add this to debug
-    res.json(bookings);
+    console.log("Fetched bookings:", result.rows);
+    res.json(result.rows);
   } catch (error) {
     console.error("Error fetching bookings:", error);
     res.status(500).json({ error: "Failed to fetch bookings" });
