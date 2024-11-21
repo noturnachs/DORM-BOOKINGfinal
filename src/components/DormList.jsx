@@ -85,7 +85,7 @@ const DormList = () => {
       <div className="bg-[#22303C] rounded-xl shadow-sm">
         <div
           onClick={() => setIsFilterOpen(!isFilterOpen)}
-          className="p-4 border-b border-[#2F3336] flex justify-between items-center cursor-pointer hover:bg-[#2C3E50] transition-colors"
+          className="p-4  border-[#2F3336] flex justify-between items-center cursor-pointer hover:bg-[#2C3E50] transition-colors"
         >
           {" "}
           <div className="flex items-center space-x-2">
