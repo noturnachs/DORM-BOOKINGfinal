@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import DormDetails from "./components/DormDetails";
+import ForgotPassword from "./components/ForgotPassword";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -39,6 +40,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
               path="/dashboard"
               element={
