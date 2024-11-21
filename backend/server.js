@@ -886,6 +886,66 @@ app.get("/api/admin/dorms", authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
+const sendPaymentConfirmationEmail = async (userEmail, bookingDetails) => {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: userEmail,
+      subject: `Payment Confirmation - ${bookingDetails.confirmation_number}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1a73e8;">Payment Received!</h2>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1a73e8; margin-top: 0;">Booking Details:</h3>
+            
+            <p style="margin: 10px 0;">
+              <strong>Confirmation Number:</strong> ${
+                bookingDetails.confirmation_number
+              }
+            </p>
+            <p style="margin: 10px 0;">
+              <strong>Dorm:</strong> ${bookingDetails.dorm_name}
+            </p>
+            <p style="margin: 10px 0;">
+              <strong>Academic Year:</strong> ${
+                bookingDetails.academic_year
+              } - ${parseInt(bookingDetails.academic_year) + 1}
+            </p>
+            <p style="margin: 10px 0;">
+              <strong>Semester:</strong> ${
+                bookingDetails.semester === "1"
+                  ? "First (Aug-Dec)"
+                  : "Second (Jan-May)"
+              }
+            </p>
+            <p style="margin: 10px 0;">
+              <strong>Total Amount Paid:</strong> ₱${
+                bookingDetails.price_per_night * 150
+              }
+            </p>
+          </div>
+
+          <div style="background-color: #f0f7ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #1a73e8; margin: 0;">
+              Thank you for your payment! Your booking is now confirmed.
+            </p>
+          </div>
+
+          <p style="color: #666; font-size: 14px;">
+            For any questions, please contact us at ${process.env.EMAIL_USER}
+          </p>
+        </div>
+      `,
+    });
+    console.log("Payment confirmation email sent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error sending payment confirmation email:", error);
+    return false;
+  }
+};
+
 // Update payment status
 app.patch(
   "/api/admin/bookings/:id/payment",
@@ -900,6 +960,26 @@ app.patch(
       const validStatuses = ["pending", "paid", "refunded", "failed"];
       if (!validStatuses.includes(payment_status)) {
         return res.status(400).json({ error: "Invalid payment status" });
+      }
+
+      // If status is being set to paid, get booking details for email
+      if (payment_status === "paid") {
+        const bookingResult = await pool.query(
+          `SELECT b.*, d.name as dorm_name, u.email as user_email
+         FROM bookings b
+         JOIN dorms d ON b.dorm_id = d.id
+         JOIN users u ON b.user_id = u.id
+         WHERE b.id = $1`,
+          [id]
+        );
+
+        if (bookingResult.rows.length > 0) {
+          const bookingDetails = bookingResult.rows[0];
+          await sendPaymentConfirmationEmail(
+            bookingDetails.user_email,
+            bookingDetails
+          );
+        }
       }
 
       await pool.query(

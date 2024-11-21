@@ -6,6 +6,7 @@ const AdminBookings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all"); // all, active, pending, cancelled
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     fetchBookings();
@@ -27,6 +28,12 @@ const AdminBookings = () => {
       await api.patch(`/admin/bookings/${bookingId}/payment`, {
         payment_status: newPaymentStatus,
       });
+      if (newPaymentStatus === "paid") {
+        setSuccessMessage(
+          "Payment status updated and confirmation email sent!"
+        );
+        setTimeout(() => setSuccessMessage(""), 5000); // Clear message after 5 seconds
+      }
       fetchBookings();
     } catch (error) {
       setError("Failed to update payment status");
@@ -65,6 +72,12 @@ const AdminBookings = () => {
       {error && (
         <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded mb-4">
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="bg-green-500/10 border border-green-500/50 text-green-500 p-4 rounded mb-4">
+          {successMessage}
         </div>
       )}
 
