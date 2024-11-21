@@ -104,7 +104,7 @@ const Dashboard = () => {
             )}
             <div className="flex items-center gap-3">
               <span className="hidden sm:block text-gray-300">
-                Welcome, {user?.email}
+                Welcome, <span className="font-bold">{user?.firstName}</span>
               </span>
               <button
                 onClick={handleLogout}

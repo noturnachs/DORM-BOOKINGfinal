@@ -1,16 +1,8 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Link, useLocation } from "react-router-dom";
 
 const AdminLayout = ({ children }) => {
-  const { logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const isActive = (path) => {
     return location.pathname === path ? "bg-blue-700" : "";
@@ -59,14 +51,6 @@ const AdminLayout = ({ children }) => {
             </Link>
           </div>
         </nav>
-        <div className="absolute bottom-0 w-64 border-t border-[#2F3336]">
-          <button
-            onClick={handleLogout}
-            className="flex items-center px-8 py-4 text-gray-100 hover:bg-red-600/10 hover:text-red-400 transition-colors w-full"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -76,6 +60,24 @@ const AdminLayout = ({ children }) => {
             {location.pathname.split("/").pop().charAt(0).toUpperCase() +
               location.pathname.split("/").pop().slice(1)}
           </h2>
+          <Link
+            to="/dashboard"
+            className="bg-[#2C3E50] hover:bg-[#34495E] text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>Back to Home</span>
+          </Link>
         </header>
         <main className="p-6">{children}</main>
       </div>
