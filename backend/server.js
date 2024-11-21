@@ -836,6 +836,240 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
   }
 });
 
+// Admin middleware
+const isAdmin = async (req, res, next) => {
+  try {
+    const userResult = await pool.query(
+      "SELECT role FROM users WHERE id = $1",
+      [req.user.userId]
+    );
+
+    if (userResult.rows[0].role !== "admin") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Admin routes
+app.post("/api/admin/dorms", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { name, description, price_per_night, capacity, available } =
+      req.body;
+
+    const result = await pool.query(
+      `INSERT INTO dorms (name, description, price_per_night, capacity, available)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+      [name, description, price_per_night, capacity, available]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Error adding dorm:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/admin/dorms", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM dorms ORDER BY created_at DESC"
+    );
+    res.json(result.rows); // Make sure we're sending an array
+  } catch (error) {
+    console.error("Error fetching dorms:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update payment status
+app.patch(
+  "/api/admin/bookings/:id/payment",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { payment_status } = req.body;
+
+      // Validate payment status
+      const validStatuses = ["pending", "paid", "refunded", "failed"];
+      if (!validStatuses.includes(payment_status)) {
+        return res.status(400).json({ error: "Invalid payment status" });
+      }
+
+      await pool.query(
+        "UPDATE bookings SET payment_status = $1 WHERE id = $2",
+        [payment_status, id]
+      );
+
+      res.json({ message: "Payment status updated successfully" });
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+app.delete(
+  "/api/admin/dorms/:id",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      await pool.query("DELETE FROM dorms WHERE id = $1", [id]);
+      res.json({ message: "Dorm deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting dorm:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+app.get(
+  "/api/admin/dashboard-stats",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const [dormsCount, bookingsCount, usersCount, recentBookings] =
+        await Promise.all([
+          pool.query("SELECT COUNT(*) FROM dorms"),
+          pool.query("SELECT COUNT(*) FROM bookings"),
+          pool.query("SELECT COUNT(*) FROM users"),
+          pool.query(`
+          SELECT b.*, u.first_name || ' ' || u.last_name as user_name, d.name as dorm_name
+          FROM bookings b
+          JOIN users u ON b.user_id = u.id
+          JOIN dorms d ON b.dorm_id = d.id
+          ORDER BY b.created_at DESC
+          LIMIT 5
+        `),
+        ]);
+
+      res.json({
+        totalDorms: parseInt(dormsCount.rows[0].count),
+        totalBookings: parseInt(bookingsCount.rows[0].count),
+        totalUsers: parseInt(usersCount.rows[0].count),
+        recentBookings: recentBookings.rows,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Admin Bookings
+app.get("/api/admin/bookings", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = `
+        SELECT b.*, u.first_name || ' ' || u.last_name as user_name, d.name as dorm_name
+        FROM bookings b
+        JOIN users u ON b.user_id = u.id
+        JOIN dorms d ON b.dorm_id = d.id
+      `;
+
+    if (status && status !== "all") {
+      query += ` WHERE b.status = $1`;
+    }
+
+    query += " ORDER BY b.created_at DESC";
+
+    const result = await pool.query(query, status !== "all" ? [status] : []);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Booking Status
+app.patch(
+  "/api/admin/bookings/:id",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      await pool.query("UPDATE bookings SET status = $1 WHERE id = $2", [
+        status,
+        id,
+      ]);
+
+      res.json({ message: "Booking status updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+app.get("/api/admin/users", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch(
+  "/api/admin/users/:id/role",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      await pool.query("UPDATE users SET role = $1 WHERE id = $2", [role, id]);
+
+      res.json({ message: "User role updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Update dorm
+app.put(
+  "/api/admin/dorms/:id",
+  authenticateToken,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description, price_per_night, capacity, available } =
+        req.body;
+
+      const result = await pool.query(
+        `UPDATE dorms 
+         SET name = $1, description = $2, price_per_night = $3, capacity = $4, available = $5
+         WHERE id = $6
+         RETURNING *`,
+        [name, description, price_per_night, capacity, available, id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Dorm not found" });
+      }
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating dorm:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

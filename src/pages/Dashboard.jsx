@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import DormList from "../components/DormList";
 import api from "../services/api";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -91,6 +92,16 @@ const Dashboard = () => {
                 BookIt
               </span>
             </div>
+            {user && user.role === "admin" && (
+              <div className="fixed bottom-4 right-4">
+                <Link
+                  to="/admin/dashboard"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors flex items-center space-x-2"
+                >
+                  <span>Admin Dashboard</span>
+                </Link>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <span className="hidden sm:block text-gray-300">
                 Welcome, {user?.email}

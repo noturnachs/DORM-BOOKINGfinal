@@ -11,6 +11,11 @@ import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import DormDetails from "./components/DormDetails";
 import ForgotPassword from "./components/ForgotPassword";
+import AdminRoute from "./components/AdminRoute";
+import AdminDorms from "./pages/admin/AdminDorms";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminBookings from "./pages/admin/AdminBookings";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -37,6 +42,38 @@ function App() {
       <AuthProvider>
         <div className="App">
           <Routes>
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/dorms"
+              element={
+                <AdminRoute>
+                  <AdminDorms />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/bookings"
+              element={
+                <AdminRoute>
+                  <AdminBookings />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              }
+            />
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />

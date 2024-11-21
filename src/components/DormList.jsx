@@ -22,7 +22,7 @@ const DormList = () => {
     try {
       const queryParams = new URLSearchParams({
         page: currentPage,
-        limit: 6,
+        limit: 10,
         ...(filters.minPrice && { minPrice: filters.minPrice }),
         ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
         ...(filters.capacity && { capacity: filters.capacity }),

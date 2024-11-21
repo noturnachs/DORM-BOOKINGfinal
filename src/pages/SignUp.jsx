@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext"; // Add this import
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Add this line
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -16,6 +19,10 @@ const SignUp = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false); // Add this state
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
