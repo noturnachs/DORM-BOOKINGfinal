@@ -21,13 +21,20 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (userData, token, rememberMe = false) => {
-    setUser(userData);
-    const storage = rememberMe ? localStorage : sessionStorage;
+  const login = async (userData, token, rememberMe = false) => {
+    try {
+      setUser(userData);
+      const storage = rememberMe ? localStorage : sessionStorage;
 
-    // Store both user data and token
-    storage.setItem("user", JSON.stringify(userData));
-    storage.setItem("token", token);
+      // Store both user data and token
+      storage.setItem("user", JSON.stringify(userData));
+      storage.setItem("token", token);
+
+      return true; // Return true for successful login
+    } catch (error) {
+      console.error("Login error:", error);
+      return false; // Return false if login fails
+    }
   };
 
   const logout = () => {

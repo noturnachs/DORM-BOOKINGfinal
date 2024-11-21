@@ -23,20 +23,33 @@ const Login = () => {
     try {
       const response = await api.post("/login", formData);
 
-      // Make sure we're passing both user and token to login
-      const { user, token } = response.data;
+      // Check if we have both user and token in the response
+      if (response.data && response.data.user && response.data.token) {
+        // Update auth context with user data and token
+        const loginSuccess = await login(
+          response.data.user,
+          response.data.token,
+          rememberMe
+        );
 
-      // Update auth context with user data and token
-      login(user, token, rememberMe);
-
-      // Redirect to dashboard
-      navigate("/dashboard");
+        // Only navigate if login was successful
+        if (loginSuccess) {
+          navigate("/dashboard");
+        } else {
+          setError("Failed to set login state. Please try again.");
+        }
+      } else {
+        setError("Invalid response from server. Please try again.");
+      }
     } catch (error) {
       console.error("Login error:", error);
-      setError(
-        error.response?.data?.error ||
-          "An error occurred during login. Please try again."
-      );
+      if (error.response?.status === 401) {
+        setError("Invalid email or password");
+      } else if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else {
+        setError("An error occurred during login. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

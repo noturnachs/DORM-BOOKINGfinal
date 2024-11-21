@@ -23,7 +23,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect to login if it's a token-related 401 error AND not a login attempt
+    if (
+      error.response?.status === 401 &&
+      !error.config.url.includes("/login") &&
+      error.response?.data?.error === "Invalid token"
+    ) {
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = "/login";
