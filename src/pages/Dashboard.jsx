@@ -164,164 +164,125 @@ const Dashboard = () => {
                 No bookings found.
               </div>
             ) : (
-              <div className="overflow-x-auto -mx-6">
-                <div className="inline-block min-w-full align-middle">
-                  <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-[#2F3336]">
-                      <thead className="bg-[#2C3E50]">
-                        <tr>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider max-md:hidden"
-                          >
-                            Confirmation #
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
-                          >
-                            Dorm
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider max-md:hidden"
-                          >
-                            Semester
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider max-md:hidden"
-                          >
-                            Academic Year
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
-                          >
-                            Payment Status
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider max-md:hidden"
-                          >
-                            Payment Deadline
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
-                          >
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-[#22303C] divide-y divide-[#2F3336]">
-                        {bookings.map((booking) => (
-                          <tr
-                            key={booking.id}
-                            className="hover:bg-[#2C3E50] transition-colors"
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-400 max-md:hidden">
-                              {booking.confirmation_number}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                              <div className="flex flex-col md:block">
-                                <span className="md:hidden text-xs text-gray-400 mb-1">
-                                  #{booking.confirmation_number}
-                                </span>
-                                {booking.dorm_name}
-                                <span className="md:hidden text-xs text-gray-400 mt-1">
-                                  {booking.semester === "1"
-                                    ? "First (Aug-Dec)"
-                                    : "Second (Jan-May)"}{" "}
-                                  {booking.academic_year}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 max-md:hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-[#2F3336]">
+                  <thead className="bg-[#2C3E50]">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        <span className="hidden sm:inline">Confirmation #</span>
+                        <span className="sm:hidden">Booking Details</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        Payment
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-[#22303C] divide-y divide-[#2F3336]">
+                    {bookings.map((booking) => (
+                      <tr
+                        key={booking.id}
+                        className="hover:bg-[#2C3E50] transition-colors"
+                      >
+                        <td className="px-4 py-4 whitespace-normal">
+                          <div className="flex flex-col">
+                            <span className="text-blue-400 text-sm font-medium">
+                              #{booking.confirmation_number}
+                            </span>
+                            <span className="text-gray-300 text-sm">
+                              {booking.dorm_name}
+                            </span>
+                            <span className="text-gray-400 text-xs mt-1">
                               {booking.semester === "1"
                                 ? "First (Aug-Dec)"
                                 : "Second (Jan-May)"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 max-md:hidden">
-                              {booking.academic_year} -{" "}
-                              {parseInt(booking.academic_year) + 1}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  booking.payment_status === "paid"
-                                    ? "bg-green-900/30 text-green-400"
-                                    : "bg-red-900/30 text-red-400"
-                                }`}
-                              >
-                                <svg
-                                  className="w-3 h-3 mr-1"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  {booking.payment_status === "paid" ? (
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                      clipRule="evenodd"
-                                    />
-                                  ) : (
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
-                                      clipRule="evenodd"
-                                    />
-                                  )}
-                                </svg>
-                                {booking.payment_status === "paid"
-                                  ? "Paid"
-                                  : "Unpaid"}
+                              <span className="hidden sm:inline">
+                                {" "}
+                                Semester
                               </span>
-                              <div className="md:hidden text-xs text-gray-400 mt-1">
-                                {formatDeadline(booking.payment_deadline)}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 max-md:hidden">
+                              <br className="sm:hidden" />
+                              <span className="sm:ml-1">
+                                AY {booking.academic_year}-
+                                {parseInt(booking.academic_year) + 1}
+                              </span>
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              booking.status === "active"
+                                ? "bg-green-900/30 text-green-400"
+                                : "bg-red-900/30 text-red-400"
+                            }`}
+                          >
+                            <svg
+                              className="w-3 h-3 mr-1"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              {booking.status === "active" ? (
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              ) : (
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                  clipRule="evenodd"
+                                />
+                              )}
+                            </svg>
+                            {booking.status === "active"
+                              ? "Active"
+                              : "Cancelled"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col space-y-2">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-min ${
+                                booking.payment_status === "paid"
+                                  ? "bg-green-900/30 text-green-400"
+                                  : "bg-red-900/30 text-red-400"
+                              }`}
+                            >
+                              <svg
+                                className="w-3 h-3 mr-1"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                {booking.payment_status === "paid" ? (
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                ) : (
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                                    clipRule="evenodd"
+                                  />
+                                )}
+                              </svg>
+                              {booking.payment_status === "paid"
+                                ? "Paid"
+                                : "Unpaid"}
+                            </span>
+                            <span className="text-xs text-gray-400">
                               {formatDeadline(booking.payment_deadline)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  booking.status === "active"
-                                    ? "bg-green-900/30 text-green-400"
-                                    : "bg-red-900/30 text-red-400"
-                                }`}
-                              >
-                                <svg
-                                  className="w-3 h-3 mr-1"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  {booking.status === "active" ? (
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                      clipRule="evenodd"
-                                    />
-                                  ) : (
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                      clipRule="evenodd"
-                                    />
-                                  )}
-                                </svg>
-                                {booking.status === "active"
-                                  ? "Active"
-                                  : "Cancelled"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
