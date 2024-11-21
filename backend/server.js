@@ -144,6 +144,91 @@ const generateConfirmationNumber = () => {
   return `${prefix}${randomNum}`;
 };
 
+const sendBookingConfirmationEmail = async (userEmail, bookingDetails) => {
+  try {
+    const paymentDeadline = new Date(
+      bookingDetails.payment_deadline
+    ).toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: userEmail,
+      subject: `Booking Confirmation - ${bookingDetails.confirmation_number}`,
+      html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1a73e8;">Thank you for your booking, ${
+              bookingDetails.firstName
+            }!</h2>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1a73e8; margin-top: 0;">Booking Details:</h3>
+              
+              <p style="margin: 10px 0;">
+                <strong>Dorm:</strong> ${bookingDetails.dorm_name}
+              </p>
+              <p style="margin: 10px 0;">
+                <strong>Academic Year:</strong> ${
+                  bookingDetails.academic_year
+                } - ${parseInt(bookingDetails.academic_year) + 1}
+              </p>
+              <p style="margin: 10px 0;">
+                <strong>Semester:</strong> ${
+                  bookingDetails.semester === "1"
+                    ? "First (Aug-Dec)"
+                    : "Second (Jan-May)"
+                }
+              </p>
+              <p style="margin: 10px 0;">
+                <strong>Total Amount:</strong> ₱${
+                  bookingDetails.price_per_night * 150
+                }
+              </p>
+            </div>
+  
+            <div style="background-color: #f0f7ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1a73e8; margin-top: 0;">Next Steps to Finalize Your Booking:</h3>
+              
+              <ol style="padding-left: 20px;">
+                <li style="margin-bottom: 10px;">Please complete the payment within 48 hours (before ${paymentDeadline})</li>
+                <li style="margin-bottom: 10px;">
+                  Payment Methods:
+                  <ul style="margin-top: 5px;">
+                    <li>Bank Transfer to: 23423423434 Dan Lius</li>
+                    <li>GCash: 09062130621 Dan Lius</li>
+                    <li>In-person at the dormitory office</li>
+                  </ul>
+                </li>
+                <li>Send your proof of payment to ${process.env.EMAIL_USER}</li>
+              </ol>
+            </div>
+  
+            <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #dc2626; margin: 0;">
+                <strong>Important:</strong> Your booking will be automatically cancelled if payment is not received within 48 hours.
+              </p>
+            </div>
+  
+            <p style="color: #666; font-size: 14px;">
+              For any questions, please reply to this email or contact us at 09062130621.
+            </p>
+          </div>
+        `,
+    });
+    console.log("Confirmation email sent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error sending confirmation email:", error);
+    return false;
+  }
+};
+
 // Create a new booking
 app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
   try {
@@ -160,10 +245,10 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
     // Check availability
     const existingBookings = await pool.query(
       `SELECT id FROM bookings 
-         WHERE dorm_id = $1 
-         AND ((start_date <= $2 AND end_date >= $3) 
-         OR (start_date <= $4 AND end_date >= $5))
-         AND status = 'active'`,
+           WHERE dorm_id = $1 
+           AND ((start_date <= $2 AND end_date >= $3) 
+           OR (start_date <= $4 AND end_date >= $5))
+           AND status = 'active'`,
       [dorm_id, end_date, start_date, end_date, start_date]
     );
 
@@ -173,50 +258,74 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
         .json({ error: "Dorm is not available for these dates" });
     }
 
+    // Get dorm details
+    const dormResult = await pool.query(
+      "SELECT name, price_per_night FROM dorms WHERE id = $1",
+      [dorm_id]
+    );
+
+    if (dormResult.rows.length === 0) {
+      return res.status(404).json({ error: "Dorm not found" });
+    }
+
+    // Get user email
+    const userResult = await pool.query(
+      "SELECT email, first_name FROM users WHERE id = $1",
+      [user_id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     // Create booking
-    const result = await pool.query(
+    const bookingResult = await pool.query(
       `INSERT INTO bookings (
-          user_id, dorm_id, start_date, end_date, semester,
-          academic_year, status, payment_status, payment_deadline, confirmation_number
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+          user_id, dorm_id, start_date, end_date, 
+          confirmation_number, status, payment_status, 
+          payment_deadline, semester, academic_year
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        RETURNING id`,
       [
         user_id,
         dorm_id,
         start_date,
         end_date,
-        semester,
-        academicYear,
+        confirmation_number,
         status,
         payment_status,
         payment_deadline,
-        confirmation_number,
+        semester,
+        academicYear,
       ]
     );
 
-    // Verify booking
-    const newBooking = await pool.query(
-      "SELECT * FROM bookings WHERE id = $1",
-      [result.rows[0].id]
-    );
+    // Prepare booking details for email
+    const bookingDetails = {
+      confirmation_number,
+      dorm_name: dormResult.rows[0].name,
+      semester,
+      academic_year: academicYear,
+      payment_deadline,
+      price_per_night: dormResult.rows[0].price_per_night,
+      firstName: userResult.rows[0].first_name,
+    };
 
-    if (!newBooking.rows.length) {
-      throw new Error("Booking creation failed");
-    }
+    // Send confirmation email
+    await sendBookingConfirmationEmail(
+      userResult.rows[0].email,
+      bookingDetails
+    );
 
     res.status(201).json({
       message: "Booking created successfully",
-      bookingId: result.rows[0].id,
+      bookingId: bookingResult.rows[0].id,
       confirmation_number,
-      status,
-      payment_status,
-      payment_deadline,
     });
   } catch (error) {
     console.error("Booking error:", error);
-    res.status(500).json({
-      error: "Failed to create booking",
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
