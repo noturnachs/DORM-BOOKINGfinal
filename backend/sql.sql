@@ -51,6 +51,7 @@ CREATE TABLE dorms (
 );
 
 -- Create Bookings Table
+-- Create Bookings Table
 CREATE TABLE bookings (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
@@ -59,7 +60,7 @@ CREATE TABLE bookings (
     end_date DATE NOT NULL,
     confirmation_number VARCHAR(8) UNIQUE NOT NULL,
     status VARCHAR(20) CHECK (status IN ('pending', 'active', 'cancelled', 'completed')),
-    payment_status VARCHAR(20) DEFAULT 'unpaid' CHECK (payment_status IN ('paid', 'unpaid', 'refunded')),
+    payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('paid', 'pending')),
     payment_deadline TIMESTAMP WITH TIME ZONE,
     semester VARCHAR(1) CHECK (semester IN ('1', '2')),
     academic_year VARCHAR(4) NOT NULL,
