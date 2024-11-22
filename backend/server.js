@@ -472,8 +472,8 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
     const dorm_id = req.params.id;
     const user_id = req.user.userId;
     const confirmation_number = generateConfirmationNumber();
-    const status = "active";
-    const payment_status = "unpaid";
+    const status = "pending"; // Changed from 'active' to 'pending'
+    const payment_status = "pending"; // Added explicit payment_status
     const payment_deadline = new Date(
       Date.now() + 48 * 60 * 60 * 1000
     ).toISOString();
