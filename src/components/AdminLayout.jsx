@@ -1,29 +1,75 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const AdminLayout = ({ children }) => {
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const isActive = (path) => {
     return location.pathname === path ? "bg-blue-700" : "";
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className="min-h-screen bg-[#192734] flex">
       {/* Sidebar */}
-      <div className="w-64 bg-[#22303C] border-r border-[#2F3336]">
-        <div className="h-16 flex items-center justify-center border-b border-[#2F3336]">
-          <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
+      <div
+        className={`${
+          isSidebarOpen ? "w-64" : "w-16"
+        } bg-[#22303C] border-r border-[#2F3336] transition-all duration-300 ease-in-out flex flex-col`}
+      >
+        <div className="h-16 flex items-center justify-between border-b border-[#2F3336] px-4">
+          {isSidebarOpen && (
+            <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
+          )}
+          <button
+            onClick={toggleSidebar}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-6 w-6 transform transition-transform duration-300 ${
+                isSidebarOpen ? "rotate-0" : "rotate-180"
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+              />
+            </svg>
+          </button>
         </div>
-        <nav className="mt-6">
-          <div className="px-4 space-y-2">
+        <nav className="mt-6 flex-1">
+          <div className="px-2 space-y-2">
             <Link
               to="/admin/dashboard"
               className={`flex items-center px-4 py-2 text-gray-100 rounded-lg hover:bg-blue-600 transition-colors ${isActive(
                 "/admin/dashboard"
               )}`}
             >
-              <span className="mx-4">Dashboard</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                />
+              </svg>
+              {isSidebarOpen && <span className="mx-4">Dashboard</span>}
             </Link>
             <Link
               to="/admin/dorms"
@@ -31,7 +77,21 @@ const AdminLayout = ({ children }) => {
                 "/admin/dorms"
               )}`}
             >
-              <span className="mx-4">Manage Dorms</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+              {isSidebarOpen && <span className="mx-4">Manage Dorms</span>}
             </Link>
             <Link
               to="/admin/bookings"
@@ -39,7 +99,21 @@ const AdminLayout = ({ children }) => {
                 "/admin/bookings"
               )}`}
             >
-              <span className="mx-4">Bookings</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              {isSidebarOpen && <span className="mx-4">Bookings</span>}
             </Link>
             <Link
               to="/admin/users"
@@ -47,7 +121,21 @@ const AdminLayout = ({ children }) => {
                 "/admin/users"
               )}`}
             >
-              <span className="mx-4">Users</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+              {isSidebarOpen && <span className="mx-4">Users</span>}
             </Link>
           </div>
         </nav>
