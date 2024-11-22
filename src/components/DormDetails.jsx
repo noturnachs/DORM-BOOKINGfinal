@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import BookingModal from "./BookingModal";
 import Swal from "sweetalert2";
@@ -8,7 +7,6 @@ import Swal from "sweetalert2";
 const DormDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [dorm, setDorm] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -60,10 +58,6 @@ const DormDetails = () => {
     });
 
     // Get semester dates
-    const { start, end } = getSemesterDates(
-      bookingData.semester,
-      bookingData.academicYear
-    );
 
     // If validation passes, show confirmation modal
     setIsModalOpen(true);
