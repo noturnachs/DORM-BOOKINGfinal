@@ -261,8 +261,6 @@ const AdminBookings = () => {
                           >
                             <option value="pending">Payment Pending</option>
                             <option value="paid">Paid</option>
-                            <option value="refunded">Refunded</option>
-                            <option value="failed">Failed</option>
                           </select>
                         </div>
                       </div>
