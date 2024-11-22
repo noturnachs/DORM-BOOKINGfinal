@@ -285,9 +285,28 @@ const Dashboard = () => {
                                 ? "Paid"
                                 : "Unpaid"}
                             </span>
-                            <span className="text-xs text-gray-400">
-                              {formatDeadline(booking.payment_deadline)}
-                            </span>
+                            {booking.payment_status === "paid" ? (
+                              <div className="flex flex-col space-y-1">
+                                <span className="text-xs text-gray-400">
+                                  Your Room Number:{" "}
+                                  <span className="font-bold">
+                                    {booking.room_number || "Not assigned"}
+                                  </span>
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  Amount: ₱
+                                  <span className="font-bold">
+                                    {booking.total_amount?.toLocaleString()}
+                                  </span>
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">
+                                <span className="font-bold">
+                                  {formatDeadline(booking.payment_deadline)}
+                                </span>
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>

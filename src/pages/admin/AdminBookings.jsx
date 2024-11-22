@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../services/api";
+import Swal from "sweetalert2";
 
 const AdminBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -39,19 +40,51 @@ const AdminBookings = () => {
     }
   };
 
-  const handlePaymentStatusChange = async (bookingId, newPaymentStatus) => {
+  const handlePaymentStatusChange = async (
+    bookingId,
+    newPaymentStatus,
+    roomNumber
+  ) => {
     try {
       setLoadingPaymentId(bookingId);
       setError("");
-      await api.patch(`/admin/bookings/${bookingId}/payment`, {
-        payment_status: newPaymentStatus,
-      });
+
       if (newPaymentStatus === "paid") {
-        setSuccessMessage(
-          "Payment status updated and confirmation email sent!"
-        );
-        setTimeout(() => setSuccessMessage(""), 5000);
+        // Show room number input dialog
+        const { value: roomNum } = await Swal.fire({
+          title: "Assign Room Number",
+          input: "text",
+          inputLabel: "Room Number",
+          inputPlaceholder: "Enter room number...",
+          showCancelButton: true,
+          inputValidator: (value) => {
+            if (!value) {
+              return "You need to assign a room number!";
+            }
+          },
+          background: "#22303C",
+          color: "#fff",
+          confirmButtonColor: "#3B82F6",
+        });
+
+        if (roomNum) {
+          await api.patch(`/admin/bookings/${bookingId}/payment`, {
+            payment_status: newPaymentStatus,
+            room_number: roomNum,
+          });
+          setSuccessMessage(
+            "Payment status updated and room assigned. Confirmation email sent!"
+          );
+        } else {
+          return; // Cancel if no room number provided
+        }
+      } else {
+        await api.patch(`/admin/bookings/${bookingId}/payment`, {
+          payment_status: newPaymentStatus,
+        });
       }
+
+      setTimeout(() => setSuccessMessage(""), 5000);
       fetchBookings();
     } catch (error) {
       setError("Failed to update payment status");
@@ -145,6 +178,7 @@ const AdminBookings = () => {
                 <th className="p-4">Dorm</th>
                 <th className="p-4">Dates</th>
                 <th className="p-4">Status</th>
+                <th className="p-4">Room</th>
                 <th className="p-4">Actions</th>
               </tr>
             </thead>
@@ -175,7 +209,17 @@ const AdminBookings = () => {
                         {booking.status}
                       </span>
                     </td>
-
+                    <td className="p-4">
+                      {booking.payment_status === "paid" ? (
+                        <span className="text-green-400 font-bold text-sm">
+                          {booking.room_number || "Not assigned"}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 font-bold text-sm">
+                          Pending payment
+                        </span>
+                      )}
+                    </td>
                     <td className="p-4 space-x-2">
                       <div className="flex space-x-2">
                         <div className="relative inline-block">

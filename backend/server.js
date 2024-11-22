@@ -842,6 +842,7 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
           b.payment_deadline,
           b.confirmation_number,
           b.created_at,
+          b.room_number,
           d.name as dorm_name,
           d.price_per_night
          FROM bookings b
@@ -851,8 +852,14 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
       [userId]
     );
 
-    console.log("Fetched bookings:", result.rows);
-    res.json(result.rows);
+    // Calculate total amount for each booking
+    const bookingsWithAmount = result.rows.map((booking) => ({
+      ...booking,
+      total_amount: booking.price_per_night * 30 * 5, // 30 days * 5 months
+    }));
+
+    console.log("Fetched bookings:", bookingsWithAmount);
+    res.json(bookingsWithAmount);
   } catch (error) {
     console.error("Error fetching bookings:", error);
     res.status(500).json({ error: "Failed to fetch bookings" });
@@ -1027,6 +1034,7 @@ const sendPaymentConfirmationEmail = async (userEmail, bookingDetails) => {
 };
 
 // Update payment status
+// Update the payment status endpoint
 app.patch(
   "/api/admin/bookings/:id/payment",
   authenticateToken,
@@ -1034,38 +1042,76 @@ app.patch(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { payment_status } = req.body;
+      const { payment_status, room_number } = req.body;
 
-      // Validate payment status
-      const validStatuses = ["pending", "paid", "refunded", "failed"];
-      if (!validStatuses.includes(payment_status)) {
-        return res.status(400).json({ error: "Invalid payment status" });
-      }
-
-      // If status is being set to paid, get booking details for email
-      if (payment_status === "paid") {
-        const bookingResult = await pool.query(
-          `SELECT b.*, d.name as dorm_name, u.email as user_email
-         FROM bookings b
-         JOIN dorms d ON b.dorm_id = d.id
-         JOIN users u ON b.user_id = u.id
-         WHERE b.id = $1`,
-          [id]
-        );
-
-        if (bookingResult.rows.length > 0) {
-          const bookingDetails = bookingResult.rows[0];
-          await sendPaymentConfirmationEmail(
-            bookingDetails.user_email,
-            bookingDetails
-          );
-        }
-      }
-
-      await pool.query(
-        "UPDATE bookings SET payment_status = $1 WHERE id = $2",
-        [payment_status, id]
+      // First get the booking details including the dorm price
+      const bookingResult = await pool.query(
+        `
+      SELECT b.*, d.price_per_night, d.name as dorm_name, u.email, u.first_name
+      FROM bookings b 
+      JOIN dorms d ON b.dorm_id = d.id 
+      JOIN users u ON b.user_id = u.id 
+      WHERE b.id = $1
+    `,
+        [id]
       );
+
+      const booking = bookingResult.rows[0];
+
+      // Calculate total amount (5 months per semester)
+      const totalAmount = booking.price_per_night * 30 * 5; // 30 days * 5 months
+
+      // Update booking with payment status and room number
+      await pool.query(
+        "UPDATE bookings SET payment_status = $1, room_number = $2 WHERE id = $3",
+        [payment_status, room_number, id]
+      );
+
+      // If payment status is set to paid, send confirmation email
+      if (payment_status === "paid") {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: booking.email,
+          subject: "Payment Confirmation - BookIt",
+          html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1a73e8;">Payment Confirmation</h2>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1a73e8; margin-bottom: 20px;">Booking Details:</h3>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="margin: 5px 0;"><strong>Confirmation Number:</strong> ${
+                  booking.confirmation_number
+                }</p>
+                <p style="margin: 5px 0;"><strong>Dorm:</strong> ${
+                  booking.dorm_name
+                }</p>
+                <p style="margin: 5px 0;"><strong>Room Number:</strong> ${room_number}</p>
+                <p style="margin: 5px 0;"><strong>Academic Year:</strong> ${
+                  booking.academic_year
+                } - ${parseInt(booking.academic_year) + 1}</p>
+                <p style="margin: 5px 0;"><strong>Semester:</strong> ${
+                  booking.semester === "1"
+                    ? "First (Aug-Dec)"
+                    : "Second (Jan-May)"
+                }</p>
+                <p style="margin: 5px 0;"><strong>Total Amount Paid:</strong> ₱${totalAmount.toLocaleString()}</p>
+              </div>
+
+              <div style="background-color: #e8f0fe; padding: 15px; border-radius: 4px; margin-top: 20px;">
+                <p style="margin: 0; color: #1a73e8;">Your room has been successfully assigned. Please keep this email for your records.</p>
+              </div>
+            </div>
+
+            <div style="color: #666; font-size: 14px; margin-top: 20px;">
+              <p>Thank you for choosing BookIt!</p>
+              <p>Best regards,<br>The BookIt Team</p>
+            </div>
+          </div>
+        `,
+        });
+      }
 
       res.json({ message: "Payment status updated successfully" });
     } catch (error) {
