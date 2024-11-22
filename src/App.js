@@ -16,6 +16,8 @@ import AdminDorms from "./pages/admin/AdminDorms";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminUsers from "./pages/admin/AdminUsers";
+import About from "./components/AboutSection";
+import Contact from "./components/ContactSection";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -75,6 +77,8 @@ function App() {
               }
             />
             <Route path="/" element={<LandingPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

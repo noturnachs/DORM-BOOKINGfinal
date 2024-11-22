@@ -15,18 +15,18 @@ const LandingPage = () => {
               BookIt
             </div>
             <div className="flex items-center space-x-3 sm:space-x-8">
-              <a
-                href="#about"
-                className="text-sm sm:text-base text-gray-300 hover:text-gray-100 transition-colors"
+              <Link
+                to="/about"
+                className="text-gray-300 hover:text-white transition-colors"
               >
                 About
-              </a>
-              <a
-                href="#contact"
-                className="text-sm sm:text-base text-gray-300 hover:text-gray-100 transition-colors"
+              </Link>
+              <Link
+                to="/contact"
+                className="text-gray-300 hover:text-white transition-colors"
               >
                 Contact
-              </a>
+              </Link>
               <Link
                 to={user ? "/dashboard" : "/login"}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"

@@ -1264,6 +1264,60 @@ app.put(
   }
 );
 
+// Add this endpoint to handle contact form submissions
+app.post("/api/contact", async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    // Send email using the existing transporter
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: process.env.SUPPORT_EMAIL, // Send to admin email
+      subject: `New Contact Form Submission from ${name}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1a73e8;">New Contact Form Submission</h2>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Message:</strong></p>
+            <p style="white-space: pre-wrap;">${message}</p>
+          </div>
+        </div>
+      `,
+    });
+
+    // Send auto-reply to user
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Thank you for contacting BookIt",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1a73e8;">Thank you for contacting us!</h2>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p>Dear ${name},</p>
+            <p>We have received your message and will get back to you as soon as possible.</p>
+            <p>Thank you for your patience.</p>
+          </div>
+
+          <div style="color: #666; font-size: 14px; margin-top: 20px;">
+            <p>Best regards,</p>
+            <p>The BookIt Team</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.json({ message: "Message sent successfully" });
+  } catch (error) {
+    console.error("Error sending contact form:", error);
+    res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
