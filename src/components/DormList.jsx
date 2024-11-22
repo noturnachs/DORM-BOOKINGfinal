@@ -150,7 +150,7 @@ const DormList = () => {
           </div>
         </div>
 
-        {/* Collapsible Filter Content */}
+        {/* Filter Area */}
         <div
           className={`overflow-hidden transition-all duration-300 ${
             isFilterOpen ? "max-h-96" : "max-h-0"
@@ -202,7 +202,7 @@ const DormList = () => {
         </div>
       </div>
 
-      {/* Dorm Grid */}
+      {/* Dorm Part */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {dorms.map((dorm) => (
           <div
