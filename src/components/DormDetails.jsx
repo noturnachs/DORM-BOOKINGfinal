@@ -16,6 +16,11 @@ const DormDetails = () => {
   const [review, setReview] = useState({ rating: 5, comment: "" });
   const [reviews, setReviews] = useState([]);
   const [confirmationNumber, setConfirmationNumber] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
 
   //   booking form
   const [bookingData, setBookingData] = useState({
@@ -229,77 +234,57 @@ const DormDetails = () => {
 
         <div className="bg-[#22303C] rounded-xl shadow-sm overflow-hidden border border-[#2F3336]">
           {/* Image Gallery */}
-          <div className="relative h-96">
-            {dorm?.images && dorm.images.length > 0 ? (
+          <div className="relative aspect-w-16 aspect-h-9 mb-4 bg-[#22303C] rounded-lg overflow-hidden">
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#22303C]">
+                <div className="animate-pulse flex space-x-4">
+                  <div className="flex-1 space-y-4 py-1">
+                    <div className="h-full w-full bg-[#2C3E50] rounded"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {dorm?.images && dorm.images.length > 0 && (
               <img
                 src={dorm.images[activeImage]}
-                alt={`${dorm?.name || "Dorm"} view ${activeImage + 1}`}
-                className="w-full h-full object-cover"
+                alt={`Dorm view ${activeImage + 1}`}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                  imageLoading ? "opacity-0" : "opacity-100"
+                }`}
+                onLoad={handleImageLoad}
               />
-            ) : (
-              <div className="w-full h-full bg-[#2C3E50] flex items-center justify-center">
-                <span className="text-gray-500">No images available</span>
-              </div>
-            )}
-
-            {/* Image Navigation Dots */}
-            {dorm?.images && dorm.images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                {dorm.images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveImage(index)}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      activeImage === index ? "bg-white" : "bg-white/50"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Optional: Add Previous/Next buttons */}
-            {dorm?.images && dorm.images.length > 1 && (
-              <>
-                <button
-                  onClick={() =>
-                    setActiveImage((prev) =>
-                      prev === 0 ? dorm.images.length - 1 : prev - 1
-                    )
-                  }
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-colors"
-                >
-                  ←
-                </button>
-                <button
-                  onClick={() =>
-                    setActiveImage((prev) =>
-                      prev === dorm.images.length - 1 ? 0 : prev + 1
-                    )
-                  }
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-colors"
-                >
-                  →
-                </button>
-              </>
             )}
           </div>
           {/* Optional: Add Thumbnail Strip */}
           {dorm?.images && dorm.images.length > 1 && (
-            <div className="flex gap-2 p-4 overflow-x-auto">
+            <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
               {dorm.images.map((image, index) => (
                 <button
                   key={index}
-                  onClick={() => setActiveImage(index)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden ${
-                    activeImage === index
+                  onClick={() => {
+                    setActiveImage(index);
+                    setImageLoading(true);
+                  }}
+                  className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden focus:outline-none ${
+                    index === activeImage
                       ? "ring-2 ring-blue-500"
                       : "ring-1 ring-[#2F3336]"
                   }`}
                 >
+                  <div
+                    className={`absolute inset-0 bg-[#22303C] ${
+                      imageLoading ? "animate-pulse" : ""
+                    }`}
+                  />
                   <img
                     src={image}
-                    alt={`${dorm.name} thumbnail ${index + 1}`}
+                    alt={`Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onLoad={(e) => {
+                      e.target.parentElement
+                        .querySelector(".animate-pulse")
+                        ?.remove();
+                    }}
                   />
                 </button>
               ))}
