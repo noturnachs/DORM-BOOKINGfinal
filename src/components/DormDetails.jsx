@@ -363,7 +363,6 @@ const DormDetails = () => {
                       </svg>
                       <span>Wi-Fi</span>
                     </li>
-                    {/* ... other amenities ... */}
                   </ul>
                 </div>
               </div>

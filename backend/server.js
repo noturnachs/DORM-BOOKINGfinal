@@ -654,9 +654,6 @@ app.post("/api/dorms/:id/reviews", authenticateToken, async (req, res) => {
 // Dorms Routes
 app.get("/api/dorms", async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
     const minPrice = req.query.minPrice;
     const maxPrice = req.query.maxPrice;
     const capacity = req.query.capacity;
@@ -688,25 +685,14 @@ app.get("/api/dorms", async (req, res) => {
       paramCount++;
     }
 
-    // Add pagination
-    query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    queryParams.push(limit, offset);
+    // Order by created_at to show newest first
+    query += ` ORDER BY created_at DESC`;
 
-    // Get dorms
+    // Get all dorms
     const dormsResult = await pool.query(query, queryParams);
-
-    // Get total count for pagination
-    const countResult = await pool.query("SELECT COUNT(*) as total FROM dorms");
-    const total = parseInt(countResult.rows[0].total);
 
     res.json({
       dorms: dormsResult.rows,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        currentPage: page,
-        limit,
-      },
     });
   } catch (error) {
     console.error("Error fetching dorms:", error);
@@ -1175,11 +1161,14 @@ app.get("/api/admin/bookings", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
-        SELECT b.*, u.first_name || ' ' || u.last_name as user_name, d.name as dorm_name
-        FROM bookings b
-        JOIN users u ON b.user_id = u.id
-        JOIN dorms d ON b.dorm_id = d.id
-      `;
+      SELECT b.*, 
+             u.first_name || ' ' || u.last_name as user_name, 
+             u.email as user_email,
+             d.name as dorm_name
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      JOIN dorms d ON b.dorm_id = d.id
+    `;
 
     if (status && status !== "all") {
       query += ` WHERE b.status = $1`;
@@ -1202,15 +1191,47 @@ app.patch(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, cancelReason, userEmail, userName, bookingId } = req.body;
 
       await pool.query("UPDATE bookings SET status = $1 WHERE id = $2", [
         status,
         id,
       ]);
 
+      // If booking is cancelled, send email notification
+      if (status === "cancelled" && cancelReason && userEmail) {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: userEmail,
+          subject: "Your Booking Has Been Cancelled",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #1a73e8;">Booking Cancellation Notice</h2>
+              
+              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p>Dear ${userName},</p>
+                <p>Your booking (ID: ${bookingId}) has been cancelled by the administrator.</p>
+                
+                <div style="background-color: #fff; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                  <p><strong>Reason for cancellation:</strong></p>
+                  <p style="color: #666;">${cancelReason}</p>
+                </div>
+
+                <p>If you have any questions about this cancellation, please contact our support team.</p>
+              </div>
+
+              <div style="color: #666; font-size: 14px; margin-top: 20px;">
+                <p>Best regards,</p>
+                <p>The BookIt Team</p>
+              </div>
+            </div>
+          `,
+        });
+      }
+
       res.json({ message: "Booking status updated successfully" });
     } catch (error) {
+      console.error("Error updating booking status:", error);
       res.status(500).json({ error: error.message });
     }
   }

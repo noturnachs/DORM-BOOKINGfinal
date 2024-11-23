@@ -93,16 +93,51 @@ const AdminBookings = () => {
     }
   };
 
-  const handleStatusChange = async (bookingId, newStatus) => {
+  const handleStatusChange = async (bookingId, newStatus, booking) => {
     try {
       setLoadingBookingId(bookingId);
       setError("");
-      await api.patch(`/admin/bookings/${bookingId}`, { status: newStatus });
+
+      // If status is being changed to cancelled, prompt for reason
+      if (newStatus === "cancelled") {
+        const { value: cancelReason } = await Swal.fire({
+          title: "Cancellation Reason",
+          input: "textarea",
+          inputLabel: "Please provide a reason for cancellation",
+          inputPlaceholder: "Enter cancellation reason...",
+          showCancelButton: true,
+          inputValidator: (value) => {
+            if (!value) {
+              return "You need to provide a reason for cancellation!";
+            }
+          },
+          background: "#22303C",
+          color: "#fff",
+          confirmButtonColor: "#3B82F6",
+        });
+
+        if (cancelReason) {
+          await api.patch(`/admin/bookings/${bookingId}`, {
+            status: newStatus,
+            cancelReason,
+            userEmail: booking.user_email, // Make sure this is passed from the backend
+            userName: booking.user_name,
+            bookingId: booking.confirmation_number,
+          });
+          setSuccessMessage("Booking cancelled and notification email sent");
+        } else {
+          return; // Cancel if no reason provided
+        }
+      } else {
+        await api.patch(`/admin/bookings/${bookingId}`, { status: newStatus });
+      }
+
       fetchBookings();
     } catch (error) {
       setError("Failed to update booking status");
     } finally {
       setLoadingBookingId(null);
+      setTimeout(() => setSuccessMessage(""), 5000);
     }
   };
 
@@ -231,7 +266,11 @@ const AdminBookings = () => {
                           <select
                             value={booking.status}
                             onChange={(e) =>
-                              handleStatusChange(booking.id, e.target.value)
+                              handleStatusChange(
+                                booking.id,
+                                e.target.value,
+                                booking
+                              )
                             }
                             disabled={loadingBookingId === booking.id}
                             className="bg-[#2C3E50] border border-[#2F3336] text-white rounded px-2 py-1 min-w-[120px]"

@@ -25,9 +25,19 @@ const AdminDorms = () => {
   const Modal = ({ title, isOpen, onClose, children }) => {
     if (!isOpen) return null;
 
+    const handleModalClick = (e) => {
+      e.stopPropagation(); // Prevent click from bubbling up
+    };
+
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-[#22303C] border border-[#2F3336] rounded-lg p-6 w-full max-w-md">
+      <div
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        onClick={onClose}
+      >
+        <div
+          className="bg-[#22303C] border border-[#2F3336] rounded-lg p-6 w-full max-w-md"
+          onClick={handleModalClick}
+        >
           <h2 className="text-xl font-bold text-white mb-4">{title}</h2>
           {children}
         </div>
@@ -106,44 +116,53 @@ const AdminDorms = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, formData, images) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
     try {
       const formDataToSubmit = new FormData();
-      formDataToSubmit.append("name", formData.name);
-      formDataToSubmit.append("description", formData.description);
+
+      // Check if values exist before appending
+      if (!formData.name?.trim()) throw new Error("Name is required");
+      if (!formData.description?.trim())
+        throw new Error("Description is required");
+      if (!formData.price_per_night) throw new Error("Price is required");
+      if (!formData.capacity) throw new Error("Capacity is required");
+
+      // Append form data
+      formDataToSubmit.append("name", formData.name.trim());
+      formDataToSubmit.append("description", formData.description.trim());
       formDataToSubmit.append("price_per_night", formData.price_per_night);
       formDataToSubmit.append("capacity", formData.capacity);
       formDataToSubmit.append("available", formData.available);
 
-      tempImages.forEach((image) => {
-        formDataToSubmit.append("images", image);
-      });
+      // Append images if they exist
+      if (images && images.length > 0) {
+        images.forEach((image) => {
+          formDataToSubmit.append("images", image);
+        });
+      }
 
-      await api.post("/dorms", formDataToSubmit, {
+      const response = await api.post("/admin/dorms", formDataToSubmit, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      setShowAddModal(false);
-      setTempImages([]);
-      fetchDorms();
-      setFormData({
-        name: "",
-        description: "",
-        price_per_night: "",
-        capacity: "",
-        available: true,
-      });
+
+      if (response.data) {
+        setShowAddModal(false);
+        fetchDorms();
+      }
     } catch (error) {
-      setError(error.response?.data?.error || "Failed to add dorm");
+      console.error("Submit error:", error);
+      setError(
+        error.message || error.response?.data?.error || "Failed to add dorm"
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this dorm?")) {
       try {
@@ -207,25 +226,61 @@ const AdminDorms = () => {
 
   // Form component to avoid duplication
   const DormForm = ({ onSubmit, submitText, dorm }) => {
+    const [localFormData, setLocalFormData] = useState({
+      name: dorm?.name || "",
+      description: dorm?.description || "",
+      price_per_night: dorm?.price_per_night || "",
+      capacity: dorm?.capacity || "",
+      available: dorm?.available ?? true,
+    });
+
+    const [localTempImages, setLocalTempImages] = useState([]);
+
+    const handleLocalSubmit = (e) => {
+      e.preventDefault();
+      // Validate form data
+      if (!localFormData.name?.trim()) {
+        setError("Name is required");
+        return;
+      }
+      if (!localFormData.description?.trim()) {
+        setError("Description is required");
+        return;
+      }
+      if (!localFormData.price_per_night) {
+        setError("Price is required");
+        return;
+      }
+      if (!localFormData.capacity) {
+        setError("Capacity is required");
+        return;
+      }
+
+      onSubmit(e, localFormData, localTempImages);
+    };
+
     const handleImageSelect = (e) => {
       const files = Array.from(e.target.files);
-      setTempImages((prev) => [...prev, ...files]);
+      setLocalTempImages((prev) => [...prev, ...files]); // Use local state
     };
 
     const handleRemoveTempImage = (index) => {
-      setTempImages((prev) => prev.filter((_, i) => i !== index));
+      setLocalTempImages((prev) => prev.filter((_, i) => i !== index)); // Use local state
     };
+
     return (
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={handleLocalSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-300">
             Name
           </label>
           <input
             type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white"
+            value={localFormData.name}
+            onChange={(e) =>
+              setLocalFormData((prev) => ({ ...prev, name: e.target.value }))
+            }
+            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             required
           />
         </div>
@@ -235,11 +290,14 @@ const AdminDorms = () => {
             Description
           </label>
           <textarea
-            value={formData.description}
+            value={localFormData.description}
             onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
+              setLocalFormData((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
             }
-            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white"
+            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             rows="3"
             required
           />
@@ -251,11 +309,14 @@ const AdminDorms = () => {
           </label>
           <input
             type="number"
-            value={formData.price_per_night}
+            value={localFormData.price_per_night}
             onChange={(e) =>
-              setFormData({ ...formData, price_per_night: e.target.value })
+              setLocalFormData((prev) => ({
+                ...prev,
+                price_per_night: e.target.value,
+              }))
             }
-            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white"
+            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             min="0"
             step="0.01"
             required
@@ -268,11 +329,14 @@ const AdminDorms = () => {
           </label>
           <input
             type="number"
-            value={formData.capacity}
+            value={localFormData.capacity}
             onChange={(e) =>
-              setFormData({ ...formData, capacity: e.target.value })
+              setLocalFormData((prev) => ({
+                ...prev,
+                capacity: e.target.value,
+              }))
             }
-            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white"
+            className="mt-1 block w-full bg-[#2C3E50] border border-[#2F3336] rounded-md shadow-sm py-2 px-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             min="1"
             required
           />
@@ -281,16 +345,19 @@ const AdminDorms = () => {
         <div className="flex items-center">
           <input
             type="checkbox"
-            checked={formData.available}
+            checked={localFormData.available}
             onChange={(e) =>
-              setFormData({ ...formData, available: e.target.checked })
+              setLocalFormData((prev) => ({
+                ...prev,
+                available: e.target.checked,
+              }))
             }
             className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
           />
           <label className="ml-2 block text-sm text-gray-300">Available</label>
         </div>
 
-        {/* Add Image Upload Section */}
+        {/* Image Upload Section */}
         <div className="space-y-4">
           <label className="block text-sm font-medium text-gray-300">
             Dorm Images
@@ -302,12 +369,12 @@ const AdminDorms = () => {
               accept="image/*"
               onChange={handleImageSelect}
               className="block w-full text-sm text-gray-400
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-600 file:text-white
-                hover:file:bg-blue-700
-                file:cursor-pointer file:transition-colors"
+              file:mr-4 file:py-2 file:px-4
+              file:rounded-full file:border-0
+              file:text-sm file:font-semibold
+              file:bg-blue-600 file:text-white
+              hover:file:bg-blue-700
+              file:cursor-pointer file:transition-colors"
             />
           </div>
 
@@ -344,7 +411,7 @@ const AdminDorms = () => {
             ))}
 
             {/* Show newly selected images */}
-            {tempImages.map((file, index) => (
+            {localTempImages.map((file, index) => (
               <div key={`temp-${index}`} className="relative group">
                 <img
                   src={URL.createObjectURL(file)}

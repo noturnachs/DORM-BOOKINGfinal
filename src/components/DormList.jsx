@@ -27,8 +27,6 @@ const DormList = () => {
   const fetchDorms = async () => {
     try {
       const queryParams = new URLSearchParams({
-        page: currentPage,
-        limit: 10,
         ...(filters.minPrice && { minPrice: filters.minPrice }),
         ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
         ...(filters.capacity && { capacity: filters.capacity }),
@@ -210,6 +208,13 @@ const DormList = () => {
             onClick={() => navigate(`/dorms/${dorm.id}`)}
             className="bg-[#22303C] rounded-xl shadow-sm overflow-hidden hover:bg-[#2C3E50] transition-all cursor-pointer"
           >
+            <div className="aspect-w-16 aspect-h-9 w-full">
+              <img
+                src={dorm.images?.[0] || "/placeholder-dorm.jpg"} // Add a default placeholder image
+                alt={dorm.name}
+                className="w-full h-48 object-cover"
+              />
+            </div>
             <div className="p-6 space-y-4">
               <div className="space-y-1">
                 <h3 className="text-lg font-semibold text-gray-100">
