@@ -26,13 +26,13 @@ const AdminDorms = () => {
     if (!isOpen) return null;
 
     const handleModalClick = (e) => {
-      e.stopPropagation(); // Prevent click from bubbling up
+      e.stopPropagation(); // Keep this to prevent any potential bubbling
     };
 
     return (
       <div
         className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-        onClick={onClose}
+        onClick={handleModalClick} // This prevents backdrop clicks from closing
       >
         <div
           className="bg-[#22303C] border border-[#2F3336] rounded-lg p-6 w-full max-w-md"
@@ -139,9 +139,10 @@ const AdminDorms = () => {
 
       // Append images if they exist
       if (images && images.length > 0) {
-        images.forEach((image) => {
-          formDataToSubmit.append("images", image);
-        });
+        // Change this part - append each image with the same field name
+        for (let i = 0; i < images.length; i++) {
+          formDataToSubmit.append("images", images[i]);
+        }
       }
 
       const response = await api.post("/admin/dorms", formDataToSubmit, {
@@ -153,6 +154,15 @@ const AdminDorms = () => {
       if (response.data) {
         setShowAddModal(false);
         fetchDorms();
+        // Reset form data and temp images after successful submission
+        setFormData({
+          name: "",
+          description: "",
+          price_per_night: "",
+          capacity: "",
+          available: true,
+        });
+        setTempImages([]);
       }
     } catch (error) {
       console.error("Submit error:", error);
@@ -163,6 +173,7 @@ const AdminDorms = () => {
       setIsSubmitting(false);
     }
   };
+
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this dorm?")) {
       try {
@@ -186,27 +197,39 @@ const AdminDorms = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdate = async (e) => {
+  const handleUpdate = async (e, localFormData, localTempImages) => {
     e.preventDefault();
     setError("");
     setIsUpdating(true);
     try {
       const formDataToSubmit = new FormData();
-      formDataToSubmit.append("name", formData.name);
-      formDataToSubmit.append("description", formData.description);
-      formDataToSubmit.append("price_per_night", formData.price_per_night);
-      formDataToSubmit.append("capacity", formData.capacity);
-      formDataToSubmit.append("available", formData.available);
+      formDataToSubmit.append("name", localFormData.name);
+      formDataToSubmit.append("description", localFormData.description);
+      formDataToSubmit.append("price_per_night", localFormData.price_per_night);
+      formDataToSubmit.append("capacity", localFormData.capacity);
+      formDataToSubmit.append("available", localFormData.available);
 
-      tempImages.forEach((image) => {
-        formDataToSubmit.append("images", image);
-      });
+      // Append existing images as JSON string
+      if (editingDorm.images) {
+        formDataToSubmit.append(
+          "existingImages",
+          JSON.stringify(editingDorm.images)
+        );
+      }
+
+      // Append new images if they exist
+      if (localTempImages && localTempImages.length > 0) {
+        for (let i = 0; i < localTempImages.length; i++) {
+          formDataToSubmit.append("images", localTempImages[i]);
+        }
+      }
 
       await api.put(`/admin/dorms/${editingDorm.id}`, formDataToSubmit, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
+
       setShowEditModal(false);
       setTempImages([]);
       fetchDorms();
@@ -217,7 +240,9 @@ const AdminDorms = () => {
         capacity: "",
         available: true,
       });
+      setEditingDorm(null);
     } catch (error) {
+      console.error("Update error:", error);
       setError(error.response?.data?.error || "Failed to update dorm");
     } finally {
       setIsUpdating(false);
@@ -637,6 +662,13 @@ const AdminDorms = () => {
           if (!isSubmitting) {
             setShowAddModal(false);
             setTempImages([]);
+            setFormData({
+              name: "",
+              description: "",
+              price_per_night: "",
+              capacity: "",
+              available: true,
+            });
           }
         }}
       >
@@ -650,6 +682,14 @@ const AdminDorms = () => {
           if (!isUpdating) {
             setShowEditModal(false);
             setTempImages([]);
+            setEditingDorm(null);
+            setFormData({
+              name: "",
+              description: "",
+              price_per_night: "",
+              capacity: "",
+              available: true,
+            });
           }
         }}
       >

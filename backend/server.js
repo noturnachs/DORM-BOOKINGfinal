@@ -20,14 +20,20 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "dorms",
+    folder: (req, file) => "dorms",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
     transformation: [{ width: 1000, height: 1000, crop: "limit" }],
+    public_id: (req, file) =>
+      `${Date.now()}-${file.originalname.split(".")[0]}`, // Add unique identifier
   },
 });
 
-const upload = multer({ storage: storage });
-
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 const app = express();
 
 // Email configuration for PrivateEmail
@@ -875,23 +881,27 @@ app.post(
   "/api/admin/dorms",
   authenticateToken,
   isAdmin,
-  upload.array("images", 5),
+  upload.array("images", 5), // Allow up to 5 images
   async (req, res) => {
     try {
       const { name, description, price_per_night, capacity, available } =
         req.body;
-      const uploadedImages = req.files.map((file) => file.path);
+
+      // Get array of image URLs from uploaded files
+      const uploadedImages = req.files
+        ? req.files.map((file) => file.path)
+        : [];
 
       const result = await pool.query(
         `INSERT INTO dorms (name, description, price_per_night, capacity, available, images)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
         [
           name,
           description,
           price_per_night,
           capacity,
-          available,
+          available === "true" || available === true,
           uploadedImages,
         ]
       );
@@ -901,8 +911,12 @@ app.post(
       // If error occurs, delete uploaded images
       if (req.files) {
         for (const file of req.files) {
-          const publicId = file.filename;
-          await cloudinary.uploader.destroy(publicId);
+          try {
+            const publicId = file.filename;
+            await cloudinary.uploader.destroy(publicId);
+          } catch (deleteError) {
+            console.error("Error deleting file:", deleteError);
+          }
         }
       }
       console.error("Error adding dorm:", error);

@@ -249,39 +249,37 @@ const DormDetails = () => {
               />
             )}
           </div>
-          {/* Optional: Add Thumbnail Strip */}
+          {/* Thumbnail Strip */}
           {dorm?.images && dorm.images.length > 1 && (
-            <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
-              {dorm.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setActiveImage(index);
-                    setImageLoading(true);
-                  }}
-                  className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden focus:outline-none ${
-                    index === activeImage
-                      ? "ring-2 ring-blue-500"
-                      : "ring-1 ring-[#2F3336]"
-                  }`}
-                >
-                  <div
-                    className={`absolute inset-0 bg-[#22303C] ${
-                      imageLoading ? "animate-pulse" : ""
-                    }`}
-                  />
-                  <img
-                    src={image}
-                    alt={`Thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onLoad={(e) => {
-                      e.target.parentElement
-                        .querySelector(".animate-pulse")
-                        ?.remove();
+            <div className="px-4 mb-6">
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                {dorm.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setActiveImage(index);
+                      setImageLoading(true);
                     }}
-                  />
-                </button>
-              ))}
+                    className={`relative aspect-w-16 aspect-h-9 rounded-lg overflow-hidden focus:outline-none transition-all ${
+                      index === activeImage
+                        ? "ring-2 ring-blue-500 opacity-100"
+                        : "ring-1 ring-[#2F3336] opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onLoad={(e) => {
+                        const parent = e.target.parentElement;
+                        const loadingDiv =
+                          parent.querySelector(".animate-pulse");
+                        if (loadingDiv) loadingDiv.remove();
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
