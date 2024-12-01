@@ -169,7 +169,7 @@ const AdminDorms = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this dorm?")) {
       try {
-        await api.delete(`/dorms/${id}`);
+        await api.delete(`/admin/dorms/${id}`);
         fetchDorms();
       } catch (error) {
         setError("Failed to delete dorm");
