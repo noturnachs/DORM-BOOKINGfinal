@@ -6,7 +6,7 @@ const AdminBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all, active, pending, cancelled
+  const [filter, setFilter] = useState("all");
   const [successMessage, setSuccessMessage] = useState("");
 
   const [loadingBookingId, setLoadingBookingId] = useState(null);
@@ -20,7 +20,6 @@ const AdminBookings = () => {
   }, [filter]);
 
   useEffect(() => {
-    // Filter bookings based on search query
     const filtered = bookings.filter((booking) =>
       booking.confirmation_number
         .toLowerCase()
@@ -50,7 +49,6 @@ const AdminBookings = () => {
       setError("");
 
       if (newPaymentStatus === "paid") {
-        // Show room number input dialog
         const { value: roomNum } = await Swal.fire({
           title: "Assign Room Number",
           input: "text",
@@ -76,7 +74,7 @@ const AdminBookings = () => {
             "Payment status updated and room assigned. Confirmation email sent!"
           );
         } else {
-          return; // Cancel if no room number provided
+          return;
         }
       } else {
         await api.patch(`/admin/bookings/${bookingId}/payment`, {
@@ -98,7 +96,6 @@ const AdminBookings = () => {
       setLoadingBookingId(bookingId);
       setError("");
 
-      // If status is being changed to cancelled, prompt for reason
       if (newStatus === "cancelled") {
         const { value: cancelReason } = await Swal.fire({
           title: "Cancellation Reason",
@@ -120,13 +117,13 @@ const AdminBookings = () => {
           await api.patch(`/admin/bookings/${bookingId}`, {
             status: newStatus,
             cancelReason,
-            userEmail: booking.user_email, // Make sure this is passed from the backend
+            userEmail: booking.user_email,
             userName: booking.user_name,
             bookingId: booking.confirmation_number,
           });
           setSuccessMessage("Booking cancelled and notification email sent");
         } else {
-          return; // Cancel if no reason provided
+          return;
         }
       } else {
         await api.patch(`/admin/bookings/${bookingId}`, { status: newStatus });
@@ -141,7 +138,6 @@ const AdminBookings = () => {
     }
   };
 
-  // Loading spinner component
   const LoadingSpinner = () => (
     <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
   );
@@ -153,7 +149,6 @@ const AdminBookings = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Manage Bookings</h1>
         <div className="flex space-x-2">
-          {/* Search Input */}
           <div className="relative">
             <input
               type="text"

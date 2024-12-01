@@ -15,7 +15,6 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#192734] flex">
-      {/* Sidebar */}
       <div
         className={`${
           isSidebarOpen ? "w-64" : "w-16"
@@ -141,7 +140,6 @@ const AdminLayout = ({ children }) => {
         </nav>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1">
         <header className="h-16 bg-[#22303C] border-b border-[#2F3336] flex items-center justify-between px-6">
           <h2 className="text-xl font-semibold text-gray-100">

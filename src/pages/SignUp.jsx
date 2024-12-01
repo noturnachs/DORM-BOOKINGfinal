@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import api from "../services/api";
-import { useAuth } from "../context/AuthContext"; // Add this import
+import { useAuth } from "../context/AuthContext";
 
 const SignUp = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Add this line
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -18,7 +18,7 @@ const SignUp = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false); // Add this state
+  const [success, setSuccess] = useState(false);
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
@@ -63,9 +63,8 @@ const SignUp = () => {
         code: verificationCode,
       });
 
-      setSuccess(true); // Show success message
+      setSuccess(true);
 
-      // Navigate after 5 seconds
       setTimeout(() => {
         navigate("/login", {
           state: { message: "Account verified successfully. Please login." },

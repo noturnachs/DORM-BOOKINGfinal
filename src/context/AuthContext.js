@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for stored user data and token on mount
     const storage = localStorage.getItem("user")
       ? localStorage
       : sessionStorage;
@@ -26,20 +25,18 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       const storage = rememberMe ? localStorage : sessionStorage;
 
-      // Store both user data and token
       storage.setItem("user", JSON.stringify(userData));
       storage.setItem("token", token);
 
-      return true; // Return true for successful login
+      return true;
     } catch (error) {
       console.error("Login error:", error);
-      return false; // Return false if login fails
+      return false;
     }
   };
 
   const logout = () => {
     setUser(null);
-    // Clear both storages
     localStorage.clear();
     sessionStorage.clear();
     navigate("/login");

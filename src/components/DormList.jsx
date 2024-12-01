@@ -78,8 +78,6 @@ const DormList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      {/* Modern Filters */}
       <div className="bg-[#22303C] rounded-xl shadow-sm">
         <div
           onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -148,7 +146,6 @@ const DormList = () => {
           </div>
         </div>
 
-        {/* Filter Area */}
         <div
           className={`overflow-hidden transition-all duration-300 ${
             isFilterOpen ? "max-h-96" : "max-h-0"
@@ -200,7 +197,6 @@ const DormList = () => {
         </div>
       </div>
 
-      {/* Dorm Part */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {dorms.map((dorm) => (
           <div
@@ -210,7 +206,7 @@ const DormList = () => {
           >
             <div className="aspect-w-16 aspect-h-9 w-full">
               <img
-                src={dorm.images?.[0] || "/placeholder-dorm.jpg"} // Add a default placeholder image
+                src={dorm.images?.[0] || "/placeholder-dorm.jpg"}
                 alt={dorm.name}
                 className="w-full h-48 object-cover"
               />

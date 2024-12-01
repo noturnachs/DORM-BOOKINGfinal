@@ -18,7 +18,7 @@ const Dashboard = () => {
     try {
       const response = await api.get("/bookings/user");
       setBookings(response.data);
-      setError(""); // Clear any previous errors
+      setError("");
     } catch (error) {
       console.error("Booking fetch error:", error);
       setError(
@@ -26,7 +26,7 @@ const Dashboard = () => {
           "Failed to fetch bookings. Please try again."
       );
       if (error.response?.status === 401) {
-        logout(); // Logout if unauthorized
+        logout();
       }
     } finally {
       setLoading(false);
@@ -34,7 +34,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
-    logout(); // This will now handle navigation automatically
+    logout();
   };
 
   const formatDeadline = (deadline) => {
@@ -44,21 +44,18 @@ const Dashboard = () => {
     const now = new Date();
     const isExpired = date < now;
 
-    // Format the date
     const formattedDate = date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
 
-    // Format the time
     const formattedTime = date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
     });
 
-    // Calculate time remaining
     const hoursRemaining = Math.round((date - now) / (1000 * 60 * 60));
     let timeRemaining = "";
 
@@ -83,7 +80,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#192734]">
-      {/* Navigation */}
       <nav className="bg-[#22303C] shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -117,9 +113,7 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <div className="bg-[#22303C] rounded-xl shadow-sm p-6 hover:bg-[#2C3E50] transition-all">
             <dt className="text-sm font-medium text-gray-400 truncate">
@@ -158,7 +152,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Bookings Section */}
         <div className="bg-[#22303C] rounded-xl shadow-sm overflow-hidden">
           <div className="p-6">
             <h2 className="text-lg font-semibold text-gray-100 mb-4">
@@ -327,7 +320,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Available Dorms Section */}
         <div>
           <h1 className="text-2xl font-semibold text-gray-100 mb-6">
             Available Dorms

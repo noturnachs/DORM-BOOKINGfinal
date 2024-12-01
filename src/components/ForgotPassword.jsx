@@ -4,7 +4,7 @@ import api from "../services/api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState("email"); // email, verify, reset
+  const [step, setStep] = useState("email");
   const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -67,7 +67,6 @@ const ForgotPassword = () => {
       });
       setSuccess(true);
 
-      // Navigate after 5 seconds
       setTimeout(() => {
         window.location.href = "/login";
       }, 5000);

@@ -5,7 +5,7 @@ import api from "../services/api";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, user } = useAuth(); // Add user from useAuth
+  const { login, user } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -27,16 +27,13 @@ const Login = () => {
     try {
       const response = await api.post("/login", formData);
 
-      // Check if we have both user and token in the response
       if (response.data && response.data.user && response.data.token) {
-        // Update auth context with user data and token
         const loginSuccess = await login(
           response.data.user,
           response.data.token,
           rememberMe
         );
 
-        // Only navigate if login was successful
         if (loginSuccess) {
           navigate("/dashboard");
         } else {
@@ -61,7 +58,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#192734] flex flex-col">
-      {/* Navigation */}
       <nav className="bg-[#22303C] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">

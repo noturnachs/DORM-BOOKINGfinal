@@ -19,7 +19,6 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import About from "./components/AboutSection";
 import Contact from "./components/ContactSection";
 
-// Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const auth = useAuth();
 

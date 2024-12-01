@@ -9,14 +9,12 @@ const cloudinary = require("cloudinary").v2;
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configure storage
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -24,30 +22,28 @@ const storage = new CloudinaryStorage({
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
     transformation: [{ width: 1000, height: 1000, crop: "limit" }],
     public_id: (req, file) =>
-      `${Date.now()}-${file.originalname.split(".")[0]}`, // Add unique identifier
+      `${Date.now()}-${file.originalname.split(".")[0]}`,
   },
 });
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024,
   },
 });
 const app = express();
 
-// Email configuration for PrivateEmail
 const transporter = nodemailer.createTransport({
   host: "mail.privateemail.com",
   port: 465,
-  secure: true, // use SSL
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
 });
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -68,7 +64,6 @@ pool
     console.error("Database connection error:", err);
   });
 
-// Auth Middleware
 const authenticateToken = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -125,7 +120,6 @@ app.post("/api/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Check if user exists
     const userResult = await pool.query(
       "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
       [email]
@@ -135,10 +129,8 @@ app.post("/api/forgot-password", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Generate reset code
     const resetCode = generateVerificationCode();
 
-    // Store reset code
     await pool.query(
       `INSERT INTO reset_codes (email, code) VALUES ($1, $2)
          ON CONFLICT (email) DO UPDATE SET 
@@ -147,7 +139,6 @@ app.post("/api/forgot-password", async (req, res) => {
       [email, resetCode]
     );
 
-    // Send reset email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -178,7 +169,6 @@ app.post("/api/forgot-password", async (req, res) => {
   }
 });
 
-// Verify Reset Code
 app.post("/api/verify-reset-code", async (req, res) => {
   try {
     const { email, code } = req.body;
@@ -202,12 +192,10 @@ app.post("/api/verify-reset-code", async (req, res) => {
   }
 });
 
-// Reset Password
 app.post("/api/reset-password", async (req, res) => {
   try {
     const { email, code, password } = req.body;
 
-    // Verify code again
     const codeResult = await pool.query(
       `SELECT * FROM reset_codes 
          WHERE email = $1 
@@ -220,16 +208,13 @@ app.post("/api/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired code" });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Update password
     await pool.query("UPDATE users SET password = $1 WHERE email = $2", [
       hashedPassword,
       email,
     ]);
 
-    // Delete reset code
     await pool.query("DELETE FROM reset_codes WHERE email = $1", [email]);
 
     res.json({ message: "Password reset successfully" });
@@ -239,12 +224,10 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
-// Auth Routes
 app.post("/api/signup", async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
-    // Check if user exists
     const existingUser = await pool.query(
       "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
       [email]
@@ -254,17 +237,14 @@ app.post("/api/signup", async (req, res) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    // Generate verification code
     const verificationCode = generateVerificationCode();
 
-    // Store verification data in temporary table
     await pool.query(
       `INSERT INTO verification_codes (email, code, first_name, last_name, password)
          VALUES ($1, $2, $3, $4, $5)`,
       [email, verificationCode, firstName, lastName, password]
     );
 
-    // Send verification email
     const emailSent = await sendVerificationEmail(email, verificationCode);
 
     if (!emailSent) {
@@ -281,12 +261,10 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
-// Add verification endpoint
 app.post("/api/verify-email", async (req, res) => {
   try {
     const { email, code } = req.body;
 
-    // Get verification data
     const verificationResult = await pool.query(
       "SELECT * FROM verification_codes WHERE email = $1 AND code = $2 AND created_at > NOW() - INTERVAL '10 minutes'",
       [email, code]
@@ -300,10 +278,8 @@ app.post("/api/verify-email", async (req, res) => {
 
     const userData = verificationResult.rows[0];
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-    // Create verified user
     await pool.query(
       "INSERT INTO users (email, password, first_name, last_name, role, verified) VALUES ($1, $2, $3, $4, $5, $6)",
       [
@@ -316,7 +292,6 @@ app.post("/api/verify-email", async (req, res) => {
       ]
     );
 
-    // Delete verification code
     await pool.query("DELETE FROM verification_codes WHERE email = $1", [
       email,
     ]);
@@ -334,7 +309,6 @@ app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Get user
     const result = await pool.query(
       "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
       [email]
@@ -346,20 +320,17 @@ app.post("/api/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    // Check password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Create token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    // Send user data without sensitive information
     const userData = {
       id: user.id,
       email: user.email,
@@ -471,20 +442,18 @@ const sendBookingConfirmationEmail = async (userEmail, bookingDetails) => {
   }
 };
 
-// Create a new booking
 app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
   try {
     const { start_date, end_date, semester, academicYear } = req.body;
     const dorm_id = req.params.id;
     const user_id = req.user.userId;
     const confirmation_number = generateConfirmationNumber();
-    const status = "pending"; // Changed from 'active' to 'pending'
-    const payment_status = "pending"; // Added explicit payment_status
+    const status = "pending";
+    const payment_status = "pending";
     const payment_deadline = new Date(
       Date.now() + 48 * 60 * 60 * 1000
     ).toISOString();
 
-    // Check availability
     const existingBookings = await pool.query(
       `SELECT id FROM bookings 
            WHERE dorm_id = $1 
@@ -500,7 +469,6 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
         .json({ error: "Dorm is not available for these dates" });
     }
 
-    // Get dorm details
     const dormResult = await pool.query(
       "SELECT name, price_per_night FROM dorms WHERE id = $1",
       [dorm_id]
@@ -510,7 +478,6 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Dorm not found" });
     }
 
-    // Get user email
     const userResult = await pool.query(
       "SELECT email, first_name FROM users WHERE id = $1",
       [user_id]
@@ -520,7 +487,6 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Create booking
     const bookingResult = await pool.query(
       `INSERT INTO bookings (
           user_id, dorm_id, start_date, end_date, 
@@ -543,7 +509,6 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
       ]
     );
 
-    // Prepare booking details for email
     const bookingDetails = {
       confirmation_number,
       dorm_name: dormResult.rows[0].name,
@@ -554,7 +519,6 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
       firstName: userResult.rows[0].first_name,
     };
 
-    // Send confirmation email
     await sendBookingConfirmationEmail(
       userResult.rows[0].email,
       bookingDetails
@@ -571,7 +535,6 @@ app.post("/api/dorms/:id/bookings", authenticateToken, async (req, res) => {
   }
 });
 
-// Add endpoint to update payment status (for admin use later)
 app.patch("/api/bookings/:id/payment", authenticateToken, async (req, res) => {
   try {
     const { payment_status } = req.body;
@@ -642,7 +605,6 @@ app.get("/api/dorms/:id/reviews", async (req, res) => {
   }
 });
 
-// Add review
 app.post("/api/dorms/:id/reviews", authenticateToken, async (req, res) => {
   try {
     const { rating, comment } = req.body;
@@ -657,7 +619,6 @@ app.post("/api/dorms/:id/reviews", authenticateToken, async (req, res) => {
   }
 });
 
-// Dorms Routes
 app.get("/api/dorms", async (req, res) => {
   try {
     const minPrice = req.query.minPrice;
@@ -665,11 +626,10 @@ app.get("/api/dorms", async (req, res) => {
     const capacity = req.query.capacity;
     const available = req.query.available;
 
-    let query = "SELECT * FROM dorms WHERE TRUE"; // Use TRUE for a base condition
+    let query = "SELECT * FROM dorms WHERE TRUE";
     const queryParams = [];
     let paramCount = 1;
 
-    // Add filters if they exist
     if (minPrice) {
       query += ` AND price_per_night >= $${paramCount}`;
       queryParams.push(minPrice);
@@ -691,10 +651,8 @@ app.get("/api/dorms", async (req, res) => {
       paramCount++;
     }
 
-    // Order by created_at to show newest first
     query += ` ORDER BY created_at DESC`;
 
-    // Get all dorms
     const dormsResult = await pool.query(query, queryParams);
 
     res.json({
@@ -724,7 +682,6 @@ app.post("/api/dorms", authenticateToken, async (req, res) => {
   }
 });
 
-// Get single dorm by ID
 app.get("/api/dorms/:id", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM dorms WHERE id = $1", [
@@ -762,13 +719,11 @@ app.patch(
   }
 );
 
-// Bookings Routes
 app.post("/api/bookings", authenticateToken, async (req, res) => {
   try {
     const { dorm_id, start_date, end_date } = req.body;
     const user_id = req.user.userId;
 
-    // Check if dorm exists
     const dormResult = await pool.query("SELECT * FROM dorms WHERE id = $1", [
       dorm_id,
     ]);
@@ -777,7 +732,6 @@ app.post("/api/bookings", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Dorm not found" });
     }
 
-    // Check availability
     const conflictsResult = await pool.query(
       `SELECT * FROM bookings 
          WHERE dorm_id = $1 
@@ -793,7 +747,6 @@ app.post("/api/bookings", authenticateToken, async (req, res) => {
         .json({ error: "Dorm is not available for these dates" });
     }
 
-    // Create booking
     const result = await pool.query(
       `INSERT INTO bookings (
           user_id, 
@@ -815,7 +768,6 @@ app.post("/api/bookings", authenticateToken, async (req, res) => {
   }
 });
 
-// Get user's bookings
 app.get("/api/bookings/user", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -844,10 +796,9 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
       [userId]
     );
 
-    // Calculate total amount for each booking
     const bookingsWithAmount = result.rows.map((booking) => ({
       ...booking,
-      total_amount: booking.price_per_night * 30 * 5, // 30 days * 5 months
+      total_amount: booking.price_per_night * 30 * 5,
     }));
 
     console.log("Fetched bookings:", bookingsWithAmount);
@@ -858,7 +809,6 @@ app.get("/api/bookings/user", authenticateToken, async (req, res) => {
   }
 });
 
-// Admin middleware
 const isAdmin = async (req, res, next) => {
   try {
     const userResult = await pool.query(
@@ -876,18 +826,16 @@ const isAdmin = async (req, res, next) => {
   }
 };
 
-// Admin routes
 app.post(
   "/api/admin/dorms",
   authenticateToken,
   isAdmin,
-  upload.array("images", 5), // Allow up to 5 images
+  upload.array("images", 5),
   async (req, res) => {
     try {
       const { name, description, price_per_night, capacity, available } =
         req.body;
 
-      // Get array of image URLs from uploaded files
       const uploadedImages = req.files
         ? req.files.map((file) => file.path)
         : [];
@@ -908,7 +856,6 @@ app.post(
 
       res.status(201).json(result.rows[0]);
     } catch (error) {
-      // If error occurs, delete uploaded images
       if (req.files) {
         for (const file of req.files) {
           try {
@@ -934,13 +881,10 @@ app.delete(
       const { id } = req.params;
       const { imageUrl } = req.body;
 
-      // Extract public_id from Cloudinary URL
       const publicId = imageUrl.split("/").slice(-1)[0].split(".")[0];
 
-      // Delete from Cloudinary
       await cloudinary.uploader.destroy(`dorms/${publicId}`);
 
-      // Update database
       const existingDorm = await pool.query(
         "SELECT images FROM dorms WHERE id = $1",
         [id]
@@ -966,7 +910,7 @@ app.get("/api/admin/dorms", authenticateToken, isAdmin, async (req, res) => {
     const result = await pool.query(
       "SELECT * FROM dorms ORDER BY created_at DESC"
     );
-    res.json(result.rows); // Make sure we're sending an array
+    res.json(result.rows);
   } catch (error) {
     console.error("Error fetching dorms:", error);
     res.status(500).json({ error: error.message });
@@ -1033,8 +977,6 @@ const sendPaymentConfirmationEmail = async (userEmail, bookingDetails) => {
   }
 };
 
-// Update payment status
-// Update the payment status endpoint
 app.patch(
   "/api/admin/bookings/:id/payment",
   authenticateToken,
@@ -1044,7 +986,6 @@ app.patch(
       const { id } = req.params;
       const { payment_status, room_number } = req.body;
 
-      // First get the booking details including the dorm price
       const bookingResult = await pool.query(
         `
       SELECT b.*, d.price_per_night, d.name as dorm_name, u.email, u.first_name
@@ -1058,16 +999,13 @@ app.patch(
 
       const booking = bookingResult.rows[0];
 
-      // Calculate total amount (5 months per semester)
-      const totalAmount = booking.price_per_night * 30 * 5; // 30 days * 5 months
+      const totalAmount = booking.price_per_night * 30 * 5;
 
-      // Update booking with payment status and room number
       await pool.query(
         "UPDATE bookings SET payment_status = $1, room_number = $2 WHERE id = $3",
         [payment_status, room_number, id]
       );
 
-      // If payment status is set to paid, send confirmation email
       if (payment_status === "paid") {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
@@ -1170,7 +1108,6 @@ app.get(
   }
 );
 
-// Admin Bookings
 app.get("/api/admin/bookings", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.query;
@@ -1197,7 +1134,6 @@ app.get("/api/admin/bookings", authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// Update Booking Status
 app.patch(
   "/api/admin/bookings/:id",
   authenticateToken,
@@ -1212,7 +1148,6 @@ app.patch(
         id,
       ]);
 
-      // If booking is cancelled, send email notification
       if (status === "cancelled" && cancelReason && userEmail) {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
@@ -1280,12 +1215,11 @@ app.patch(
   }
 );
 
-// Update dorm
 app.put(
   "/api/admin/dorms/:id",
   authenticateToken,
   isAdmin,
-  upload.array("images", 5), // Add multer middleware
+  upload.array("images", 5),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -1298,16 +1232,13 @@ app.put(
         existingImages,
       } = req.body;
 
-      // Convert existingImages from string back to array if it's passed as string
       const existingImagesArray =
         typeof existingImages === "string"
           ? JSON.parse(existingImages)
           : existingImages || [];
 
-      // Get URLs of newly uploaded images
       const newImageUrls = req.files ? req.files.map((file) => file.path) : [];
 
-      // Combine existing and new images
       const allImages = [...existingImagesArray, ...newImageUrls];
 
       const result = await pool.query(
@@ -1320,7 +1251,6 @@ app.put(
       );
 
       if (result.rows.length === 0) {
-        // Delete newly uploaded images if dorm not found
         if (req.files) {
           for (const file of req.files) {
             const publicId = file.filename;
@@ -1332,7 +1262,6 @@ app.put(
 
       res.json(result.rows[0]);
     } catch (error) {
-      // Delete uploaded images if there's an error
       if (req.files) {
         for (const file of req.files) {
           const publicId = file.filename;
@@ -1345,15 +1274,13 @@ app.put(
   }
 );
 
-// Add this endpoint to handle contact form submissions
 app.post("/api/contact", async (req, res) => {
   try {
     const { name, email, message } = req.body;
 
-    // Send email using the existing transporter
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: process.env.SUPPORT_EMAIL, // Send to admin email
+      to: process.env.SUPPORT_EMAIL,
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1369,7 +1296,6 @@ app.post("/api/contact", async (req, res) => {
       `,
     });
 
-    // Send auto-reply to user
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,

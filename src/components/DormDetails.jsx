@@ -20,9 +20,8 @@ const DormDetails = () => {
     setImageLoading(false);
   };
 
-  //   booking form
   const [bookingData, setBookingData] = useState({
-    semester: "1", // "1" or "2"
+    semester: "1",
     academicYear: new Date().getFullYear(),
   });
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -37,13 +36,13 @@ const DormDetails = () => {
   const getSemesterDates = (semester, year) => {
     if (semester === "1") {
       return {
-        start: `${year}-08-01`, // First semester typically starts in August
-        end: `${year}-12-31`, // Ends in December
+        start: `${year}-08-01`,
+        end: `${year}-12-31`,
       };
     } else {
       return {
-        start: `${year}-01-01`, // Second semester starts in January
-        end: `${year}-05-31`, // Ends in May
+        start: `${year}-01-01`,
+        end: `${year}-05-31`,
       };
     }
   };
@@ -57,9 +56,6 @@ const DormDetails = () => {
       general: "",
     });
 
-    // Get semester dates
-
-    // If validation passes, show confirmation modal
     setIsModalOpen(true);
   };
 
@@ -77,10 +73,8 @@ const DormDetails = () => {
         semester: bookingData.semester,
         academicYear: bookingData.academicYear,
         dorm_id: id,
-        // Remove status and payment_status from here - let server handle these
       });
 
-      // Make sure we have the confirmation number before showing the success message
       if (response.data && response.data.confirmation_number) {
         setConfirmationNumber(response.data.confirmation_number);
 
@@ -141,7 +135,6 @@ const DormDetails = () => {
       }));
       setIsModalOpen(false);
 
-      // Show error message
       Swal.fire({
         icon: "error",
         title: "Booking Failed",
@@ -155,13 +148,6 @@ const DormDetails = () => {
     }
   };
 
-  // Dummy images (replace with actual dorm images)
-  // const images = [
-  //   "https://images.unsplash.com/photo-1555854877-bab0e564b8d5",
-  //   "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af",
-  //   "https://images.unsplash.com/photo-1515552726023-7125c8d07fb3",
-  // ];
-
   useEffect(() => {
     const fetchDormDetails = async () => {
       try {
@@ -174,7 +160,6 @@ const DormDetails = () => {
         setDorm(dormResponse.data);
         setReviews(reviewsResponse.data);
 
-        // If there are images, set the first one as active
         if (dormResponse.data.images && dormResponse.data.images.length > 0) {
           setActiveImage(0);
         }
@@ -202,7 +187,7 @@ const DormDetails = () => {
     try {
       await api.post(`/dorms/${id}/reviews`, review);
       setReview({ rating: 5, comment: "" });
-      fetchReviews(); // Refresh reviews
+      fetchReviews();
     } catch (error) {
       console.error("Failed to submit review:", error);
     }
@@ -227,7 +212,6 @@ const DormDetails = () => {
         </button>
 
         <div className="bg-[#22303C] rounded-xl shadow-sm overflow-hidden border border-[#2F3336]">
-          {/* Image Gallery */}
           <div className="relative aspect-w-16 aspect-h-9 mb-4 bg-[#22303C] rounded-lg overflow-hidden">
             {imageLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#22303C]">
@@ -249,7 +233,6 @@ const DormDetails = () => {
               />
             )}
           </div>
-          {/* Thumbnail Strip */}
           {dorm?.images && dorm.images.length > 1 && (
             <div className="px-4 mb-6">
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
@@ -282,9 +265,7 @@ const DormDetails = () => {
               </div>
             </div>
           )}
-
           <div className="p-6 sm:p-8">
-            {/* Dorm Header */}
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-2xl font-bold text-gray-100 mb-2">
@@ -302,8 +283,6 @@ const DormDetails = () => {
                 {dorm.available ? "Available" : "Booked"}
               </span>
             </div>
-
-            {/* Dorm Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
               <div className="space-y-6">
                 <h2 className="text-lg font-semibold text-gray-100">
@@ -340,8 +319,6 @@ const DormDetails = () => {
                     <span>₱{dorm.price_per_night}/night</span>
                   </div>
                 </div>
-
-                {/* Amenities */}
                 <div>
                   <h2 className="text-lg font-semibold mb-4 text-gray-100">
                     Amenities
@@ -364,29 +341,23 @@ const DormDetails = () => {
                   </ul>
                 </div>
               </div>
-
-              {/* Booking Section */}
               <div className="space-y-6">
                 <h2 className="text-lg font-semibold text-gray-100">
                   Book this dorm
                 </h2>
-
                 {bookingSuccess && (
                   <div className="mb-4 bg-green-900/30 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg">
                     Booking successful! We'll send you a confirmation email
                     shortly.
                   </div>
                 )}
-
                 {bookingError.general && (
                   <div className="mb-4 bg-red-900/30 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
                     {bookingError.general}
                   </div>
                 )}
-
                 <form onSubmit={handleBooking} className="space-y-6">
                   <div className="bg-[#2C3E50] rounded-lg p-6 space-y-4">
-                    {/* Academic Year Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Academic Year
@@ -411,8 +382,6 @@ const DormDetails = () => {
                         })}
                       </select>
                     </div>
-
-                    {/* Semester Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Semester
@@ -458,8 +427,6 @@ const DormDetails = () => {
                         </button>
                       </div>
                     </div>
-
-                    {/* Price Calculation */}
                     <div className="border-t border-[#2F3336] pt-4 mt-4">
                       <div className="flex justify-between items-center text-gray-300 mb-2">
                         <span>Price per semester</span>
@@ -471,7 +438,6 @@ const DormDetails = () => {
                       </div>
                     </div>
                   </div>
-
                   <button
                     type="submit"
                     disabled={bookingLoading || !dorm.available}
@@ -495,14 +461,10 @@ const DormDetails = () => {
                 </form>
               </div>
             </div>
-
-            {/* Reviews Section */}
             <div className="mt-12">
               <h2 className="text-lg font-semibold mb-6 text-gray-100">
                 Reviews
               </h2>
-
-              {/* Review Form */}
               <form onSubmit={handleSubmitReview} className="mb-8">
                 <div className="space-y-4">
                   <div>
@@ -545,8 +507,6 @@ const DormDetails = () => {
                   </button>
                 </div>
               </form>
-
-              {/* Reviews List */}
               <div className="space-y-6">
                 {reviews.map((review) => (
                   <div

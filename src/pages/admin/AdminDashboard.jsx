@@ -34,7 +34,6 @@ const AdminDashboard = () => {
         <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Stats Cards */}
         <div className="bg-[#22303C] border border-[#2F3336] rounded-lg p-6">
           <h3 className="text-gray-400 text-sm font-medium">Total Dorms</h3>
           <p className="text-2xl font-bold text-white mt-2">
@@ -55,7 +54,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Bookings */}
       <div className="bg-[#22303C] border border-[#2F3336] rounded-lg p-6">
         <h2 className="text-xl font-bold text-white mb-4">Recent Bookings</h2>
         <div className="overflow-x-auto">

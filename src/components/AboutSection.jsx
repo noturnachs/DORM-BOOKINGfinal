@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 const AboutSection = () => {
   return (
     <div className="min-h-screen bg-[#192734] flex flex-col">
-      {/* Navigation */}
       <nav className="bg-[#22303C] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -24,7 +23,6 @@ const AboutSection = () => {
         </div>
       </nav>
 
-      {/* About Content */}
       <div className="flex-grow flex items-center justify-center py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-[#22303C] rounded-xl p-8 shadow-lg">

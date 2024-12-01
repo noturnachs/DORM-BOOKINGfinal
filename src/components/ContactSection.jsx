@@ -12,7 +12,7 @@ const ContactSection = () => {
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000); // Hide after 5 seconds
+    setTimeout(() => setNotification(null), 5000);
   };
 
   const handleChange = (e) => {
@@ -26,13 +26,11 @@ const ContactSection = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!formData.name || !formData.email || !formData.message) {
       showNotification("error", "Please fill in all fields");
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       showNotification("error", "Please enter a valid email address");
@@ -55,7 +53,6 @@ const ContactSection = () => {
       }
 
       showNotification("success", "Message sent successfully!");
-      // Reset form
       setFormData({
         name: "",
         email: "",
@@ -74,7 +71,6 @@ const ContactSection = () => {
 
   return (
     <div className="min-h-screen bg-[#192734] relative">
-      {/* Notification */}
       {notification && (
         <div
           className={`fixed top-4 right-4 max-w-sm w-full p-4 rounded-lg shadow-lg transform transition-all duration-500 ${
@@ -137,8 +133,6 @@ const ContactSection = () => {
           </div>
         </div>
       )}
-
-      {/* Navigation */}
       <nav className="bg-[#22303C] shadow-md mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -157,8 +151,6 @@ const ContactSection = () => {
           </div>
         </div>
       </nav>
-
-      {/* Contact Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-100 mb-4">Contact Us</h1>
@@ -167,7 +159,6 @@ const ContactSection = () => {
             us using the form below or through our contact information.
           </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-[#22303C] p-6 rounded-xl">
             <h2 className="text-xl font-semibold text-gray-100 mb-4">
@@ -234,7 +225,6 @@ const ContactSection = () => {
               </button>
             </form>
           </div>
-
           <div className="bg-[#22303C] p-6 rounded-xl">
             <h2 className="text-xl font-semibold text-gray-100 mb-4">
               Contact Information

@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Add these base dark mode colors */
 :root {
   --dark-bg: #192734;
   --dark-secondary: #22303c;
@@ -13,7 +12,6 @@
   --dark-hover: #22303c;
 }
 
-/* Apply dark mode by default */
 body {
   background-color: var(--dark-bg);
   color: var(--dark-text);

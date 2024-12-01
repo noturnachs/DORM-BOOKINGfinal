@@ -1,13 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // Add this import
+import { useAuth } from "../context/AuthContext";
 
 const LandingPage = () => {
-  const { user } = useAuth(); // Add this hook
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-[#192734]">
-      {/* Navigation */}
       <nav className="bg-[#22303C] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -38,7 +37,6 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center py-12 sm:py-20">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-100 mb-4 px-2">
@@ -55,7 +53,6 @@ const LandingPage = () => {
           </Link>
         </div>
 
-        {/* Feature Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-12">
           <div className="bg-[#22303C] p-6 rounded-xl hover:bg-[#2C3E50] transition-all">
             <div className="text-blue-400 mb-4">

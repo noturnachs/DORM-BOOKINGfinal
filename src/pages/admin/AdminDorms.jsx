@@ -26,13 +26,13 @@ const AdminDorms = () => {
     if (!isOpen) return null;
 
     const handleModalClick = (e) => {
-      e.stopPropagation(); // Keep this to prevent any potential bubbling
+      e.stopPropagation();
     };
 
     return (
       <div
         className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-        onClick={handleModalClick} // This prevents backdrop clicks from closing
+        onClick={handleModalClick}
       >
         <div
           className="bg-[#22303C] border border-[#2F3336] rounded-lg p-6 w-full max-w-md"
@@ -54,7 +54,6 @@ const AdminDorms = () => {
       });
 
       if (response.status === 200) {
-        // Update both dorms list and editing dorm if it's the same dorm
         setDorms(
           dorms.map((dorm) => {
             if (dorm.id === dormId) {
@@ -67,7 +66,6 @@ const AdminDorms = () => {
           })
         );
 
-        // Update editingDorm if the deleted image was from the currently edited dorm
         if (editingDorm && editingDorm.id === dormId) {
           setEditingDorm((prev) => ({
             ...prev,
@@ -95,9 +93,8 @@ const AdminDorms = () => {
 
   const fetchDorms = async () => {
     try {
-      const response = await api.get("/admin/dorms"); // Make sure endpoint is correct
+      const response = await api.get("/admin/dorms");
 
-      // Check if response.data is an array
       if (Array.isArray(response.data)) {
         setDorms(response.data);
       } else if (response.data.dorms && Array.isArray(response.data.dorms)) {
@@ -105,12 +102,12 @@ const AdminDorms = () => {
       } else {
         console.error("Invalid data format:", response.data);
         setError("Invalid data format received from server");
-        setDorms([]); // Set to empty array if invalid data
+        setDorms([]);
       }
     } catch (error) {
       console.error("Fetch error:", error);
       setError("Failed to fetch dorms");
-      setDorms([]); // Set to empty array on error
+      setDorms([]);
     } finally {
       setLoading(false);
     }
@@ -123,23 +120,19 @@ const AdminDorms = () => {
     try {
       const formDataToSubmit = new FormData();
 
-      // Check if values exist before appending
       if (!formData.name?.trim()) throw new Error("Name is required");
       if (!formData.description?.trim())
         throw new Error("Description is required");
       if (!formData.price_per_night) throw new Error("Price is required");
       if (!formData.capacity) throw new Error("Capacity is required");
 
-      // Append form data
       formDataToSubmit.append("name", formData.name.trim());
       formDataToSubmit.append("description", formData.description.trim());
       formDataToSubmit.append("price_per_night", formData.price_per_night);
       formDataToSubmit.append("capacity", formData.capacity);
       formDataToSubmit.append("available", formData.available);
 
-      // Append images if they exist
       if (images && images.length > 0) {
-        // Change this part - append each image with the same field name
         for (let i = 0; i < images.length; i++) {
           formDataToSubmit.append("images", images[i]);
         }
@@ -154,7 +147,6 @@ const AdminDorms = () => {
       if (response.data) {
         setShowAddModal(false);
         fetchDorms();
-        // Reset form data and temp images after successful submission
         setFormData({
           name: "",
           description: "",
@@ -209,7 +201,6 @@ const AdminDorms = () => {
       formDataToSubmit.append("capacity", localFormData.capacity);
       formDataToSubmit.append("available", localFormData.available);
 
-      // Append existing images as JSON string
       if (editingDorm.images) {
         formDataToSubmit.append(
           "existingImages",
@@ -217,7 +208,6 @@ const AdminDorms = () => {
         );
       }
 
-      // Append new images if they exist
       if (localTempImages && localTempImages.length > 0) {
         for (let i = 0; i < localTempImages.length; i++) {
           formDataToSubmit.append("images", localTempImages[i]);
@@ -249,7 +239,6 @@ const AdminDorms = () => {
     }
   };
 
-  // Form component to avoid duplication
   const DormForm = ({ onSubmit, submitText, dorm }) => {
     const [localFormData, setLocalFormData] = useState({
       name: dorm?.name || "",
@@ -263,7 +252,6 @@ const AdminDorms = () => {
 
     const handleLocalSubmit = (e) => {
       e.preventDefault();
-      // Validate form data
       if (!localFormData.name?.trim()) {
         setError("Name is required");
         return;
@@ -286,11 +274,11 @@ const AdminDorms = () => {
 
     const handleImageSelect = (e) => {
       const files = Array.from(e.target.files);
-      setLocalTempImages((prev) => [...prev, ...files]); // Use local state
+      setLocalTempImages((prev) => [...prev, ...files]);
     };
 
     const handleRemoveTempImage = (index) => {
-      setLocalTempImages((prev) => prev.filter((_, i) => i !== index)); // Use local state
+      setLocalTempImages((prev) => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -382,7 +370,6 @@ const AdminDorms = () => {
           <label className="ml-2 block text-sm text-gray-300">Available</label>
         </div>
 
-        {/* Image Upload Section */}
         <div className="space-y-4">
           <label className="block text-sm font-medium text-gray-300">
             Dorm Images
@@ -403,9 +390,7 @@ const AdminDorms = () => {
             />
           </div>
 
-          {/* Image Preview Grid */}
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {/* Show existing images when editing */}
             {dorm?.images?.map((imageUrl, index) => (
               <div key={`existing-${index}`} className="relative group">
                 <img
@@ -435,7 +420,6 @@ const AdminDorms = () => {
               </div>
             ))}
 
-            {/* Show newly selected images */}
             {localTempImages.map((file, index) => (
               <div key={`temp-${index}`} className="relative group">
                 <img
@@ -540,7 +524,6 @@ const AdminDorms = () => {
         </div>
       )}
 
-      {/* Add check for empty dorms array */}
       {dorms.length === 0 && !loading && !error ? (
         <div className="text-gray-400 text-center py-8">
           No dorms found. Add your first dorm!
@@ -654,7 +637,6 @@ const AdminDorms = () => {
         </div>
       )}
 
-      {/* Add Modal */}
       <Modal
         title="Add New Dorm"
         isOpen={showAddModal}

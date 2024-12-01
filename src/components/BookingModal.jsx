@@ -10,7 +10,6 @@ const BookingModal = ({
 }) => {
   if (!isOpen) return null;
 
-  // Get semester dates
   const getSemesterDates = (semester, year) => {
     if (semester === "1") {
       return {
@@ -31,7 +30,7 @@ const BookingModal = ({
     booking.semester,
     booking.academicYear
   );
-  const totalPrice = dorm.price_per_night * 150; // Approximate days per semester
+  const totalPrice = dorm.price_per_night * 150;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
